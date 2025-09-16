@@ -1,0 +1,220 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Order{
+  id String @id @default(cuid())
+  name String
+  description String
+  category String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("order") // maps the Prisma model to the lowercase table
+}
+
+// Roles table
+model Role {
+  id             String   @id @default(cuid())
+  roleName       String   @unique
+  roleDescription String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  Admins         Admin[]
+  Users          User[]
+}
+
+// Admins table
+model Admin {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  roleId    String
+  role      Role     @relation(fields: [roleId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Companies table
+model Company {
+  id           String  @id @default(cuid())
+  companyName  String  @unique
+  companyEmail String  @unique
+  industry     String
+  Users        User[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// Users table
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  passwordHash   String?  
+  passwordSetAt  DateTime?
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id])
+  roleId    String
+  role      Role     @relation(fields: [roleId], references: [id])
+  UserCourses UserCourse[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+   sessions       Session[]
+   passwordReset PasswordReset?
+}
+
+model Session {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id])
+  refreshTokenHash  String?   // store a hash, not the raw token
+  userAgent         String?
+  ip                String?
+  revoked           Boolean  @default(false)
+  expiresAt         DateTime
+  createdAt         DateTime @default(now())
+
+  @@index([userId])
+}
+
+model PasswordReset {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  user       User     @relation(fields: [userId], references: [id])
+  tokenHash  String   @unique
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+}
+
+// Course categories
+model CourseCategory {
+  id          String  @id @default(cuid())
+  categoryName String @unique
+  Courses     Course[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Courses table
+model Course {
+  id          String  @id @default(cuid())
+  title       String
+  description String
+  categoryId  String
+  category    CourseCategory @relation(fields: [categoryId], references: [id])
+  duration    Int
+  CourseObjectives CourseObjective[]
+  Lessons     CourseLesson[]
+  Quizzes     Quiz[]
+  UserCourses UserCourse[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Course objectives
+model CourseObjective {
+  id        String   @id @default(cuid())
+  objective String
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// UserCourse (assign course to user)
+model UserCourse {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id])
+  score       Int
+  startedAt   DateTime?
+  completed   Boolean  @default(false)
+  completedAt DateTime?
+  UserCourseLessons UserCourseLesson[]
+}
+
+// Lesson types
+model LessonType {
+  id        Int      @id @default(autoincrement())
+  type      String
+  Lessons   CourseLesson[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Course lessons
+model CourseLesson {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  typeId    Int
+  type      LessonType @relation(fields: [typeId], references: [id])
+  duration  Int
+  file      String?
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id])
+  UserCourseLessons UserCourseLesson[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Track lesson progress per user
+model UserCourseLesson {
+  id           String   @id @default(cuid())
+  userCourseId String
+  userCourse   UserCourse @relation(fields: [userCourseId], references: [id])
+  lessonId     String
+  lesson       CourseLesson @relation(fields: [lessonId], references: [id])
+  startedAt    DateTime?
+  spentTime    Int
+  completed    Boolean  @default(false)
+  completedAt  DateTime?
+}
+
+// Quizzes
+model Quiz {
+  id           String   @id @default(cuid())
+  title        String
+  courseId     String
+  course       Course   @relation(fields: [courseId], references: [id])
+  passingScore Int
+  Questions    Question[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// Quiz questions
+model Question {
+  id        String   @id @default(cuid())
+  question  String
+  quizId    String
+  quiz      Quiz     @relation(fields: [quizId], references: [id])
+  Options   QuestionOption[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Question options
+model QuestionOption {
+  id        String   @id @default(cuid())
+  option    String
+  isCorrect Boolean
+  questionId String
+  question  Question @relation(fields: [questionId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+
+
+
+
