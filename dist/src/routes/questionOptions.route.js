@@ -1,0 +1,11 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.questionOptionRoutes = void 0;
+const express_1 = require("express");
+const questionOption_controller_1 = require("../controllers/questionOption.controller");
+exports.questionOptionRoutes = (0, express_1.Router)();
+exports.questionOptionRoutes.post("/", questionOption_controller_1.questionOptionController.createOption);
+exports.questionOptionRoutes.get("/", questionOption_controller_1.questionOptionController.getOptions);
+exports.questionOptionRoutes.get("/:id", questionOption_controller_1.questionOptionController.getOptionById);
+exports.questionOptionRoutes.put("/:id", questionOption_controller_1.questionOptionController.updateOption);
+exports.questionOptionRoutes.delete("/:id", questionOption_controller_1.questionOptionController.deleteOption);

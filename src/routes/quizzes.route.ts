@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { quizController } from "../controllers/quiz.controller.ts";
+import { quizController } from "../controllers/quiz.controller";
 
 export const quizRoutes = Router();
 

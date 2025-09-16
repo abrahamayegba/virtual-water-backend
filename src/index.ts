@@ -1,24 +1,25 @@
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
-import { orderRoutes } from "./routes/orders.route.ts";
-import { userRoutes } from "./routes/users.route.ts";
-import { courseRoutes } from "./routes/courses.route.ts";
-import { courseLessonRoutes } from "./routes/courseLesson.route.ts";
-import { userCourseRoutes } from "./routes/userCourses.route.ts";
-import { courseCategoryRoutes } from "./routes/courseCategories.route.ts";
-import { questionRoutes } from "./routes/questions.route.ts";
-import { questionOptionRoutes } from "./routes/questionOptions.route.ts";
-import { quizRoutes } from "./routes/quizzes.route.ts";
-import { courseObjectiveRoutes } from "./routes/courseObjectives.route.ts";
-import { userCourseLessonRoutes } from "./routes/userCourseLessons.route.ts";
-import { companyRoutes } from "./routes/companies.route.ts";
-import { roleRoutes } from "./routes/roles.route.ts";
 import cookieParser from "cookie-parser";
-import { lessonTypeRoutes } from "./routes/lessonTypes.route.ts";
-import { adminRoutes } from "./routes/admins.route.ts";
-import { authRoutes } from "./routes/auth.routes.ts";
-import { protectedRoutes } from "./routes/protected.route.ts";
+import { orderRoutes } from "./routes/orders.route";
+import { courseCategoryRoutes } from "./routes/courseCategories.route";
+import { courseLessonRoutes } from "./routes/courseLesson.route";
+import { courseObjectiveRoutes } from "./routes/courseObjectives.route";
+import { courseRoutes } from "./routes/courses.route";
+import { lessonTypeRoutes } from "./routes/lessonTypes.route";
+import { protectedRoutes } from "./routes/protected.route";
+import { questionOptionRoutes } from "./routes/questionOptions.route";
+import { questionRoutes } from "./routes/questions.route";
+import { quizRoutes } from "./routes/quizzes.route";
+import { roleRoutes } from "./routes/roles.route";
+import { userCourseLessonRoutes } from "./routes/userCourseLessons.route";
+import { userCourseRoutes } from "./routes/userCourses.route";
+import { userRoutes } from "./routes/users.route";
+
+import { authRoutes } from "./routes/auth.routes";
+import { adminRoutes } from "./routes/admins.route";
+import { companyRoutes } from "./routes/companies.route";
 
 dotenv.config();
 

@@ -1,0 +1,15 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.userCourseLessonRoutes = void 0;
+const express_1 = require("express");
+const userCourseLesson_controller_1 = require("../controllers/userCourseLesson.controller");
+exports.userCourseLessonRoutes = (0, express_1.Router)();
+exports.userCourseLessonRoutes.post("/", userCourseLesson_controller_1.userCourseLessonController.createUserCourseLesson);
+exports.userCourseLessonRoutes.get("/", userCourseLesson_controller_1.userCourseLessonController.getUserCourseLessons);
+exports.userCourseLessonRoutes.get("/:id", userCourseLesson_controller_1.userCourseLessonController.getUserCourseLessonById);
+exports.userCourseLessonRoutes.get("/user-course/:userCourseId", userCourseLesson_controller_1.userCourseLessonController.getUserCourseLessonsByUserCourseId);
+exports.userCourseLessonRoutes.get("/user-course/:userCourseId/lesson/:lessonId", userCourseLesson_controller_1.userCourseLessonController.getUserCourseLessonByUserCourseAndLesson);
+exports.userCourseLessonRoutes.get("/user/:userId", userCourseLesson_controller_1.userCourseLessonController.getUserCourseLessonsByUserId);
+exports.userCourseLessonRoutes.get("/user/:userId/completed-courses", userCourseLesson_controller_1.userCourseLessonController.getCompletedCoursesByUserId);
+exports.userCourseLessonRoutes.put("/:id", userCourseLesson_controller_1.userCourseLessonController.updateUserCourseLesson);
+exports.userCourseLessonRoutes.delete("/:id", userCourseLesson_controller_1.userCourseLessonController.deleteUserCourseLesson);

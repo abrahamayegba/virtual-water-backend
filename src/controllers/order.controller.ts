@@ -1,5 +1,5 @@
 import type { Response, Request } from "express";
-import { prisma } from "../lib/prisma.ts";
+import { prisma } from "../lib/prisma";
 
 export const orderControllers = {
   getOrders: async (req: Request, res: Response) => {

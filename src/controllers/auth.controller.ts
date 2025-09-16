@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import crypto from "crypto";
-import { prisma } from "../lib/prisma.ts";
+import { prisma } from "../lib/prisma";
 import {
   hashPassword,
   comparePassword,
@@ -8,8 +8,8 @@ import {
   signRefreshToken,
   verifyRefreshToken,
   verifyAccessToken,
-} from "../auth/utils.ts";
-import { sendEmail } from "../lib/email.ts";
+} from "../auth/utils";
+import { sendEmail } from "../lib/email";
 
 const REFRESH_TTL_DAYS = Number(process.env.REFRESH_TOKEN_TTL_DAYS ?? 14);
 const refreshCookieOptions = {

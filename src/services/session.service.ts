@@ -1,5 +1,5 @@
 // src/services/session.service.ts
-import { prisma } from "../lib/prisma.ts";
+import { prisma } from "../lib/prisma";
 import { hash } from "bcrypt";
 
 const REFRESH_SALT_ROUNDS = 12;

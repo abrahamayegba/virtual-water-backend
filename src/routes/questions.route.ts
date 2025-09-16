@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { questionController } from "../controllers/question.controller.ts";
+import { questionController } from "../controllers/question.controller";
 
 export const questionRoutes = Router();
 

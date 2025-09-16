@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { courseCategoryController } from "../controllers/courseCategory.controller.ts";
+import { courseCategoryController } from "../controllers/courseCategory.controller";
 
 export const courseCategoryRoutes = Router();
 

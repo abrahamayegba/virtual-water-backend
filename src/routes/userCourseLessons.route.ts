@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { userCourseLessonController } from "../controllers/userCourseLesson.controller.ts";
+import { userCourseLessonController } from "../controllers/userCourseLesson.controller";
 
 export const userCourseLessonRoutes = Router();
 

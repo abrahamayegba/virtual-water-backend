@@ -1,10 +1,10 @@
 import { Router } from "express";
-import { courseLessonController } from "../controllers/courseLesson.controller.ts";
+import { courseLessonController } from "../controllers/courseLesson.controller";
 import type { Request, Response } from "express";
-import { upload } from "../middleware/upload.ts";
+import { upload } from "../middleware/upload";
 import fs from "fs";
-import client from "../lib/filestack.ts";
-import { prisma } from "../lib/prisma.ts";
+import client from "../lib/filestack";
+import { prisma } from "../lib/prisma";
 
 export const courseLessonRoutes = Router();
 
