@@ -8,3 +8,8 @@ courseObjectiveRoutes.get("/", courseObjectiveController.getObjectives);
 courseObjectiveRoutes.get("/:id", courseObjectiveController.getObjectiveById);
 courseObjectiveRoutes.put("/:id", courseObjectiveController.updateObjective);
 courseObjectiveRoutes.delete("/:id", courseObjectiveController.deleteObjective);
+courseObjectiveRoutes.get(
+  "/course/:courseId",
+  courseObjectiveController.getObjectivesByCourseId
+);
+

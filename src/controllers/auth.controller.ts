@@ -20,8 +20,6 @@ const refreshCookieOptions = {
   maxAge: REFRESH_TTL_DAYS * 24 * 60 * 60 * 1000,
 };
 
-console.log(process.env.FRONTEND_URL);
-
 export const authController = {
   // POST /api/v1/auth/register
   register: async (req: Request, res: Response) => {
@@ -125,6 +123,7 @@ export const authController = {
           email: user.email,
           companyId: user.companyId,
           roleId: user.roleId,
+          passwordSetAt: user.passwordSetAt,
         },
         sessionId: session.id,
       });
@@ -334,15 +333,14 @@ export const authController = {
         update: { tokenHash, expiresAt },
       });
 
-      const resetUrl = `${
-        process.env.FRONTEND_URL ?? "http://localhost:5173"
-      }/reset-password?token=${rawToken}&userId=${user.id}`;
-      // This now uses Nodemailer's implementation:
-      await sendEmail(
-        user.email,
-        "Password reset",
-        `Reset your password: ${resetUrl}`
-      );
+      const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${rawToken}&userId=${user.id}`;
+      const html = `
+  <p>Click the button below to reset your password:</p>
+  <a href="${resetUrl}" style="padding:10px 20px;background:#4CAF50;color:white;text-decoration:none;border-radius:5px;">Reset Password</a>
+  <p>This link expires in 1 hour.</p>
+`;
+
+      await sendEmail(user.email, "Password Reset", html);
 
       return res.json({ success: true });
     } catch (error: any) {
@@ -465,9 +463,14 @@ export const authController = {
         data: { revoked: true },
       });
 
+      const updatedUser = await prisma.user.findUnique({
+        where: { id: userId },
+      });
+
       return res.json({
         success: true,
         message: "Password updated successfully",
+        user: updatedUser,
       });
     } catch (error: any) {
       console.error("changePassword error:", error);
