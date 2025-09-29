@@ -53,6 +53,24 @@ exports.courseObjectiveController = {
             res.status(500).json({ message: "Internal server error" });
         }
     },
+    // GET /api/v1/course-objectives/course/:courseId
+    getObjectivesByCourseId: async (req, res) => {
+        try {
+            const { courseId } = req.params;
+            if (!courseId) {
+                return res.status(400).json({ message: "courseId is required" });
+            }
+            const objectives = await prisma_1.prisma.courseObjective.findMany({
+                where: { courseId },
+                include: { course: true },
+            });
+            res.status(200).json({ success: true, objectives });
+        }
+        catch (error) {
+            console.error("Error fetching objectives by courseId:", error);
+            res.status(500).json({ message: "Internal server error" });
+        }
+    },
     // PUT /api/v1/course-objectives/:id
     updateObjective: async (req, res) => {
         try {

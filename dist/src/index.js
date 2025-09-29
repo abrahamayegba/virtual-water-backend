@@ -25,7 +25,7 @@ const auth_routes_1 = require("./routes/auth.routes");
 const admins_route_1 = require("./routes/admins.route");
 const companies_route_1 = require("./routes/companies.route");
 dotenv_1.default.config();
-const allowedOrigin = 'http://localhost:5173';
+const allowedOrigin = process.env.FRONTEND_URL || "http://localhost:5173";
 const corsOptions = {
     origin: allowedOrigin,
     credentials: true,

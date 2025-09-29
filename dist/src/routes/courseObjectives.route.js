@@ -9,3 +9,4 @@ exports.courseObjectiveRoutes.get("/", courseObjective_controller_1.courseObject
 exports.courseObjectiveRoutes.get("/:id", courseObjective_controller_1.courseObjectiveController.getObjectiveById);
 exports.courseObjectiveRoutes.put("/:id", courseObjective_controller_1.courseObjectiveController.updateObjective);
 exports.courseObjectiveRoutes.delete("/:id", courseObjective_controller_1.courseObjectiveController.deleteObjective);
+exports.courseObjectiveRoutes.get("/course/:courseId", courseObjective_controller_1.courseObjectiveController.getObjectivesByCourseId);

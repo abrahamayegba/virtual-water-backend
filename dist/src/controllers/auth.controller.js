@@ -16,7 +16,6 @@ const refreshCookieOptions = {
     path: "/",
     maxAge: REFRESH_TTL_DAYS * 24 * 60 * 60 * 1000,
 };
-console.log(process.env.FRONTEND_URL);
 exports.authController = {
     // POST /api/v1/auth/register
     register: async (req, res) => {
@@ -109,6 +108,7 @@ exports.authController = {
                     email: user.email,
                     companyId: user.companyId,
                     roleId: user.roleId,
+                    passwordSetAt: user.passwordSetAt,
                 },
                 sessionId: session.id,
             });
@@ -295,9 +295,13 @@ exports.authController = {
                 create: { userId: user.id, tokenHash, expiresAt },
                 update: { tokenHash, expiresAt },
             });
-            const resetUrl = `${process.env.FRONTEND_URL ?? "http://localhost:5173"}/reset-password?token=${rawToken}&userId=${user.id}`;
-            // This now uses Nodemailer's implementation:
-            await (0, email_1.sendEmail)(user.email, "Password reset", `Reset your password: ${resetUrl}`);
+            const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${rawToken}&userId=${user.id}`;
+            const html = `
+  <p>Click the button below to reset your password:</p>
+  <a href="${resetUrl}" style="padding:10px 20px;background:#4CAF50;color:white;text-decoration:none;border-radius:5px;">Reset Password</a>
+  <p>This link expires in 1 hour.</p>
+`;
+            await (0, email_1.sendEmail)(user.email, "Password Reset", html);
             return res.json({ success: true });
         }
         catch (error) {
@@ -408,9 +412,13 @@ exports.authController = {
                 where: { userId },
                 data: { revoked: true },
             });
+            const updatedUser = await prisma_1.prisma.user.findUnique({
+                where: { id: userId },
+            });
             return res.json({
                 success: true,
                 message: "Password updated successfully",
+                user: updatedUser,
             });
         }
         catch (error) {

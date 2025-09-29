@@ -82,6 +82,9 @@ exports.userControllers = {
     deleteUser: async (req, res) => {
         try {
             const { id } = req.params;
+            await prisma_1.prisma.session.deleteMany({
+                where: { userId: id },
+            });
             const user = await prisma_1.prisma.user.delete({ where: { id } });
             res.status(200).json({ success: true, message: "User deleted", user });
         }

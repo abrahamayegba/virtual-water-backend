@@ -2,6 +2,7 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+
 import { orderRoutes } from "./routes/orders.route";
 import { courseCategoryRoutes } from "./routes/courseCategories.route";
 import { courseLessonRoutes } from "./routes/courseLesson.route";
@@ -23,12 +24,25 @@ import { companyRoutes } from "./routes/companies.route";
 
 dotenv.config();
 
-const allowedOrigin = process.env.FRONTEND_URL || "http://localhost:5173";
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://52.18.34.158:5173", // if you test frontend on this IP:port
+  "http://34.247.103.158", // deployed frontend
+  "https://34.247.103.158", // if you later enable https
+];
 
+// ✅ Dynamic CORS handling
 const corsOptions = {
-  origin: allowedOrigin,
+  origin: function (origin: string | undefined, callback: Function) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true); // allow request
+    } else {
+      console.log("❌ Blocked by CORS:", origin);
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
 };
 
 const app = express();
@@ -42,6 +56,7 @@ app.get("/", (_, res) => {
   res.status(200).json({ message: "Api is healthy ..." });
 });
 
+// routes
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/orders", orderRoutes);
 app.use("/api/v1/users", userRoutes);
@@ -62,5 +77,5 @@ app.use("/api/v1", protectedRoutes);
 
 const port = process.env.PORT || 8000;
 app.listen(port, () => {
-  console.log(`App running on http://localhost:${port}`);
+  console.log(`✅ App running on http://localhost:${port}`);
 });
