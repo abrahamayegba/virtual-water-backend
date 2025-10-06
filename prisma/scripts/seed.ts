@@ -1,105 +1,63 @@
 import { PrismaClient } from "@prisma/client";
+import { hashPassword } from "../../src/auth/utils";
 
 const prisma = new PrismaClient();
 
 async function main() {
-  // Create Roles
-  const adminRole = await prisma.role.create({
-    data: {
-      roleName: "Admin",
-      roleDescription: "Admin role with full access",
+  const users = [
+    {
+      name: "Dawn Lawrie",
+      email: "dawn.lawrie@virtualservicesgroup.co.uk",
+      password: "Dawn.Lawrie",
+      companyId: "cmf155yb30001chjgj2sz6959",
+      roleId: "cmeuae0qi0000chm032g9wp9f",
     },
-  });
-
-  const instructorRole = await prisma.role.create({
-    data: {
-      roleName: "Instructor",
-      roleDescription: "Can create and assign courses",
+    {
+      name: "Calum Mclean",
+      email: "calum.mclean@virtualservicesgroup.co.uk",
+      password: "Calum.Mclean",
+      companyId: "cmf155yb30001chjgj2sz6959",
+      roleId: "cmeuae0qm0001chm0rh5gheq8",
     },
-  });
-
-  const studentRole = await prisma.role.create({
-    data: {
-      roleName: "Student",
-      roleDescription: "Can enroll in courses",
+    {
+      name: "Cameron Paterson",
+      email: "cameron.paterson@virtualservicesgroup.co.uk",
+      password: "Cameron.Paterson",
+      companyId: "cmf155yb30001chjgj2sz6959",
+      roleId: "cmeuae0qo0002chm0s7ojs8fi",
     },
-  });
-
-  // Create a Company
-  const company = await prisma.company.create({
-    data: {
-      companyName: "Tech Academy",
-      companyEmail: "info@techacademy.com",
-      industry: "Education",
+    {
+      name: "Bowzer Nintendo",
+      email: "amoniussmoke@gmail.com",
+      password: "Bowzer.Nintendo",
+      companyId: "cmf155yb30001chjgj2sz6959",
+      roleId: "cmf15el060001chpoyrpk5st2",
     },
-  });
-
-  // Create Users
-  const admin = await prisma.user.create({
-    data: {
-      name: "Alice Admin",
-      email: "alice@techacademy.com",
-      roleId: adminRole.id,
-      companyId: company.id,
+    {
+      name: "Virtual Water Admin",
+      email: "virtualwatertest@virtualwatergroup.co.uk",
+      password: "Virtual.Water",
+      companyId: "cmf155yb30001chjgj2sz6959",
+      roleId: "cmeuae0qo0002chm0s7ojs8fi",
     },
-  });
+  ];
 
-  const instructor = await prisma.user.create({
-    data: {
-      name: "Bob Instructor",
-      email: "bob@techacademy.com",
-      roleId: instructorRole.id,
-      companyId: company.id,
-    },
-  });
-
-  const student = await prisma.user.create({
-    data: {
-      name: "Charlie Student",
-      email: "charlie@techacademy.com",
-      roleId: studentRole.id,
-      companyId: company.id,
-    },
-  });
-
-  // Create a Course Category
-  const webCategory = await prisma.courseCategory.create({
-    data: {
-      categoryName: "Web Development",
-    },
-  });
-
-  // Create a Course
-  const course = await prisma.course.create({
-    data: {
-      title: "Introduction to React",
-      description: "Learn the basics of React.js",
-      categoryId: webCategory.id,
-      duration: 120,
-    },
-  });
-
-  // Add Course Objectives
-  await prisma.courseObjective.createMany({
-    data: [
-      { objective: "Understand JSX", courseId: course.id },
-      { objective: "Learn components", courseId: course.id },
-      { objective: "Manage state", courseId: course.id },
-    ],
-  });
-
-  // Assign course to student
-  await prisma.userCourse.create({
-    data: {
-      userId: student.id,
-      courseId: course.id,
-      score: 0,
-      completed: false,
-      startedAt: new Date(),
-    },
-  });
-
-  console.log("Database seeded successfully!");
+  for (const u of users) {
+    const passwordHash = await hashPassword(u.password);
+    await prisma.user.upsert({
+      where: { email: u.email },
+      update: { passwordHash }, // only update the hash
+      create: {
+        name: u.name,
+        email: u.email,
+        passwordHash,
+        companyId: u.companyId,
+        roleId: u.roleId,
+        passwordSetAt: null, // explicitly keep null
+      },
+    });
+    console.log(`User ${u.email} seeded`);
+  }
 }
 
 main()

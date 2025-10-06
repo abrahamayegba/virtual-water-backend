@@ -25,11 +25,25 @@ const auth_routes_1 = require("./routes/auth.routes");
 const admins_route_1 = require("./routes/admins.route");
 const companies_route_1 = require("./routes/companies.route");
 dotenv_1.default.config();
-const allowedOrigin = process.env.FRONTEND_URL || "http://localhost:5173";
+const allowedOrigins = [
+    "http://localhost:5173",
+    "http://52.18.34.158:5173", // if you test frontend on this IP:port
+    "http://34.247.103.158", // deployed frontend
+    "https://34.247.103.158", // if you later enable https
+];
+// ✅ Dynamic CORS handling
 const corsOptions = {
-    origin: allowedOrigin,
+    origin: function (origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true); // allow request
+        }
+        else {
+            console.log("❌ Blocked by CORS:", origin);
+            callback(new Error("Not allowed by CORS"));
+        }
+    },
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
 };
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)(corsOptions));
@@ -39,6 +53,7 @@ app.use(express_1.default.urlencoded({ extended: true }));
 app.get("/", (_, res) => {
     res.status(200).json({ message: "Api is healthy ..." });
 });
+// routes
 app.use("/api/v1/auth", auth_routes_1.authRoutes);
 app.use("/api/v1/orders", orders_route_1.orderRoutes);
 app.use("/api/v1/users", users_route_1.userRoutes);
@@ -58,5 +73,5 @@ app.use("/api/v1/admins", admins_route_1.adminRoutes);
 app.use("/api/v1", protected_route_1.protectedRoutes);
 const port = process.env.PORT || 8000;
 app.listen(port, () => {
-    console.log(`App running on http://localhost:${port}`);
+    console.log(`✅ App running on http://localhost:${port}`);
 });
