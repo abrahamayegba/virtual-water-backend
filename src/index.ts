@@ -29,6 +29,7 @@ const allowedOrigins = [
   "http://52.18.34.158:5173", // if you test frontend on this IP:port
   "http://34.247.103.158", // deployed frontend
   "https://34.247.103.158", // if you later enable https
+  "http://34.244.236.173:3000",
 ];
 
 // ✅ Dynamic CORS handling
@@ -53,7 +54,7 @@ app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
 
 app.get("/", (_, res) => {
-  res.status(200).json({ message: "Api is healthy ..., updated" });
+  res.status(200).json({ message: "Api is healthy ..." });
 });
 
 // routes
@@ -75,7 +76,8 @@ app.use("/api/v1/lesson-types", lessonTypeRoutes);
 app.use("/api/v1/admins", adminRoutes);
 app.use("/api/v1", protectedRoutes);
 
-const port = process.env.PORT || 8000;
-app.listen(port, () => {
-  console.log(`✅ App running on http://localhost:${port}`);
+const port = Number(process.env.PORT) || 8080;
+
+app.listen(port, "0.0.0.0", () => {
+  console.log(`✅ App running on http://0.0.0.0:${port}`);
 });

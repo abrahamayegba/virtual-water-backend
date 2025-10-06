@@ -37,7 +37,16 @@ jobs:
           key: ${{ secrets.EC2_KEY }}
           script: |
             cd /home/ubuntu/virtual-water-backend
-            git pull origin main
+
+            # <<< ADDED: Force reset local changes to match GitHub
+            git fetch origin main
+            git reset --hard origin/main
+
+            # Install dependencies fresh
             npm ci
+
+            # Build the backend
             npm run build
+
+            # Restart with PM2 or start if not running
             pm2 restart virtualwater || pm2 start "dotenv -e .env -- node dist/src/index.js" --name virtualwater
