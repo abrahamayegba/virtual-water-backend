@@ -54,7 +54,7 @@ app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
 
 app.get("/", (_, res) => {
-  res.status(200).json({ message: "Api is healthy ..." });
+  res.status(200).json({ message: "Api is healthy ..., updated..." });
 });
 
 // routes
