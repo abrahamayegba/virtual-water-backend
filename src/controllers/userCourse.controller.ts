@@ -63,7 +63,13 @@ export const userCourseController = {
       const { userId } = req.params; // or req.query based on your route design
       const userCourses = await prisma.userCourse.findMany({
         where: { userId },
-        include: { course: true }, // Include course information
+        include: {
+          course: {
+            include: {
+              category: true, // include course category
+            },
+          },
+        },
       });
       res.status(200).json({ success: true, userCourses });
     } catch (error) {
@@ -99,7 +105,7 @@ export const userCourseController = {
           course: {
             include: {
               Quizzes: true,
-              Lessons: true
+              Lessons: true,
             },
           },
           user: true,

@@ -1,16 +1,21 @@
 import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcrypt";
 
 const prisma = new PrismaClient();
 
 async function main() {
-  // Set passwordSetAt to null for all users
+  const defaultPassword = "SuperMushroom1!";
+  const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+
+  // Update all users
   await prisma.user.updateMany({
     data: {
+      passwordHash: hashedPassword,
       passwordSetAt: null,
     },
   });
 
-  console.log("passwordSetAt cleared for all users.");
+  console.log("All users' passwords reset and passwordSetAt cleared.");
 }
 
 main()
