@@ -30,6 +30,7 @@ const allowedOrigins = [
   "http://34.247.103.158", // deployed frontend
   "https://34.247.103.158", // if you later enable https
   "http://34.244.236.173:3000",
+  "https://training.virtualwaterservices.co.uk",
 ];
 
 // ✅ Dynamic CORS handling
