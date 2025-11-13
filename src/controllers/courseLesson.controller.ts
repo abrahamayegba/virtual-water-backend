@@ -50,7 +50,7 @@ export const courseLessonController = {
       const lessons = await prisma.courseLesson.findMany({
         where,
         include: { type: true, course: true },
-        orderBy: { createdAt: "desc" },
+        orderBy: { lessonNumber: "asc" },
       });
 
       res.status(200).json({ success: true, lessons });

@@ -159,6 +159,7 @@ model CourseLesson {
   typeId    Int
   type      LessonType @relation(fields: [typeId], references: [id])
   duration  Int
+  lessonNumber Int?
   file      String?
   courseId  String
   course    Course   @relation(fields: [courseId], references: [id])
