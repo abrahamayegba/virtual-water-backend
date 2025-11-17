@@ -3,24 +3,22 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
+  const userCourseId = "cmhw2ae2p000hch2k5vpobyvh"; // replace with the actual userCourseId
 
-  // Map of lesson IDs to their lesson numbers
-  const lessonNumbers: Record<string, number> = {
-    cmhvzev3m000jchvw6tgx1vqp: 1,
-    cmhvzhdix000lchvwws5nr27c: 2,
-    cmhvzkc3p000nchvw1dsdomqh: 3,
-    cmhvzmze4000pchvwdlm38luo: 4,
-    cmhvzp0yb000rchvw252xzq4p: 5,
-    // add more as needed
-  };
+  // update all lessons for this user course
+  const updated = await prisma.userCourseLesson.updateMany({
+    where: {
+      userCourseId,
+    },
+    data: {
+      completed: false,
+      completedAt: null,
+      startedAt: null,
+      spentTime: 0,
+    },
+  });
 
-  for (const [lessonId, number] of Object.entries(lessonNumbers)) {
-    await prisma.courseLesson.update({
-      where: { id: lessonId },
-      data: { lessonNumber: number },
-    });
-    console.log(`Updated lesson ${lessonId} to number ${number}`);
-  }
+  console.log(`Updated ${updated.count} lessons to completed: false`);
 }
 
 main()

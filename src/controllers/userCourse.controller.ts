@@ -139,6 +139,7 @@ export const userCourseController = {
       const lessons = await prisma.courseLesson.findMany({
         where: { courseId: userCourse.courseId },
         include: { type: true },
+        orderBy: { lessonNumber: "asc" },
       });
 
       // 3. Get user progress for lessons
