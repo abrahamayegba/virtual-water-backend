@@ -112,4 +112,20 @@ export const courseObjectiveController = {
       res.status(500).json({ message: "Internal server error" });
     }
   },
+
+  // DELETE /api/v1/course-objectives/course/:courseId
+  deleteObjectivesByCourseId: async (req: Request, res: Response) => {
+    try {
+      const { courseId } = req.params;
+
+      await prisma.courseObjective.deleteMany({
+        where: { courseId },
+      });
+
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting objectives by courseId:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  },
 };

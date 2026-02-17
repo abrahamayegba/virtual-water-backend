@@ -8,7 +8,7 @@ export async function createSession(
   userId: string,
   refreshToken: string,
   userAgent?: string,
-  ip?: string
+  ip?: string,
 ) {
   const refreshTokenHash = await hash(refreshToken, REFRESH_SALT_ROUNDS);
 

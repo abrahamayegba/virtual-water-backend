@@ -7,27 +7,38 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Order{
-  id String @id @default(cuid())
-  name String
+enum CourseStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum CompanyStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model Order {
+  id          String   @id @default(cuid())
+  name        String
   description String
-  category String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  category    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@map("order") // maps the Prisma model to the lowercase table
 }
 
 // Roles table
 model Role {
-  id             String   @id @default(cuid())
-  roleName       String   @unique
+  id              String   @id @default(cuid())
+  roleName        String   @unique
   roleDescription String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  Admins         Admin[]
-  Users          User[]
+  Admins Admin[]
+  Users  User[]
 }
 
 // Admins table
@@ -43,79 +54,95 @@ model Admin {
 
 // Companies table
 model Company {
-  id           String  @id @default(cuid())
-  companyName  String  @unique
-  companyEmail String  @unique
+  id           String   @id @default(cuid())
+  companyName  String   @unique
+  companyEmail String   @unique
   industry     String
+  status       CompanyStatus @default(ACTIVE)
+  maxUsers       Int?            // optional
   Users        User[]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  courseCompanies CourseCompany[]
 }
 
 // Users table
 model User {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  passwordHash   String?  
+  id             String         @id @default(cuid())
+  name           String
+  email          String         @unique
+  passwordHash   String?
   passwordSetAt  DateTime?
-  companyId String
-  company   Company  @relation(fields: [companyId], references: [id])
-  roleId    String
-  role      Role     @relation(fields: [roleId], references: [id])
-  UserCourses UserCourse[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-   sessions       Session[]
-   passwordReset PasswordReset?
+  companyId      String
+  company        Company        @relation(fields: [companyId], references: [id])
+  roleId         String
+  role           Role           @relation(fields: [roleId], references: [id])
+  isArchived     Boolean  @default(false)
+  UserCourses    UserCourse[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  sessions       Session[]
+  passwordReset  PasswordReset?
+  createdCourses Course[]
+  certificates      Certificate[]
+
+  assignedCourses CourseCompany[] @relation("AssignedByUser")
 }
 
 model Session {
-  id                String   @id @default(cuid())
-  userId            String
-  user              User     @relation(fields: [userId], references: [id])
-  refreshTokenHash  String?   // store a hash, not the raw token
-  userAgent         String?
-  ip                String?
-  revoked           Boolean  @default(false)
-  expiresAt         DateTime
-  createdAt         DateTime @default(now())
+  id               String   @id @default(cuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id])
+  refreshTokenHash String? // store a hash, not the raw token
+  userAgent        String?
+  ip               String?
+  revoked          Boolean  @default(false)
+  expiresAt        DateTime
+  createdAt        DateTime @default(now())
 
   @@index([userId])
 }
 
 model PasswordReset {
-  id         String   @id @default(cuid())
-  userId     String   @unique
-  user       User     @relation(fields: [userId], references: [id])
-  tokenHash  String   @unique
-  expiresAt  DateTime
-  createdAt  DateTime @default(now())
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 }
 
 // Course categories
 model CourseCategory {
-  id          String  @id @default(cuid())
-  categoryName String @unique
-  Courses     Course[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           String   @id @default(cuid())
+  categoryName String   @unique
+  Courses      Course[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 // Courses table
 model Course {
-  id          String  @id @default(cuid())
-  title       String
-  description String
-  categoryId  String
-  category    CourseCategory @relation(fields: [categoryId], references: [id])
-  duration    Int
+  id               String            @id @default(cuid())
+  title            String
+  description      String
+  categoryId       String
+  status           CourseStatus      @default(DRAFT)
+  category         CourseCategory    @relation(fields: [categoryId], references: [id])
+  duration         Int
   CourseObjectives CourseObjective[]
-  Lessons     CourseLesson[]
-  Quizzes     Quiz[]
-  UserCourses UserCourse[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  Lessons          CourseLesson[]
+  Quizzes          Quiz[]
+  UserCourses      UserCourse[]
+  createdById      String?
+  createdBy        User?             @relation(fields: [createdById], references: [id])
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  CourseCompanies CourseCompany[]
+  certificates      Certificate[]
+
 }
 
 // Course objectives
@@ -123,99 +150,142 @@ model CourseObjective {
   id        String   @id @default(cuid())
   objective String
   courseId  String
-  course    Course   @relation(fields: [courseId], references: [id])
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
 
 // UserCourse (assign course to user)
 model UserCourse {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
-  courseId    String
-  course      Course   @relation(fields: [courseId], references: [id])
-  score       Int
-  startedAt   DateTime?
-  completed   Boolean  @default(false)
-  completedAt DateTime?
+  id                String             @id @default(cuid())
+  userId            String
+  user              User               @relation(fields: [userId], references: [id])
+  courseId          String
+  course            Course             @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  score             Int
+  startedAt         DateTime?
+  completed         Boolean            @default(false)
+  completedAt       DateTime?
   UserCourseLessons UserCourseLesson[]
+  certificates      Certificate[]
+
+  @@unique([userId, courseId])
 }
+
 
 // Lesson types
 model LessonType {
-  id        Int      @id @default(autoincrement())
+  id        Int            @id @default(autoincrement())
   type      String
   Lessons   CourseLesson[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
 }
 
 // Course lessons
 model CourseLesson {
-  id        String   @id @default(cuid())
-  title     String
-  content   String
-  typeId    Int
-  type      LessonType @relation(fields: [typeId], references: [id])
-  duration  Int
-  lessonNumber Int?
-  file      String?
-  courseId  String
-  course    Course   @relation(fields: [courseId], references: [id])
+  id                String             @id @default(cuid())
+  title             String
+  content           String
+  typeId            Int
+  type              LessonType         @relation(fields: [typeId], references: [id])
+  duration          Int
+  lessonNumber      Int?
+  file              String?
+  courseId          String
+  course            Course             @relation(fields: [courseId], references: [id], onDelete: Cascade)
   UserCourseLessons UserCourseLesson[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
 }
+
 
 // Track lesson progress per user
 model UserCourseLesson {
-  id           String   @id @default(cuid())
+  id           String       @id @default(cuid())
   userCourseId String
-  userCourse   UserCourse @relation(fields: [userCourseId], references: [id])
+  userCourse   UserCourse   @relation(fields: [userCourseId], references: [id], onDelete: Cascade)
   lessonId     String
-  lesson       CourseLesson @relation(fields: [lessonId], references: [id])
+  lesson       CourseLesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   startedAt    DateTime?
-  spentTime    Int
-  completed    Boolean  @default(false)
+  spentTime    Int          @default(0)
+  completed    Boolean      @default(false)
   completedAt  DateTime?
+
+  @@index([userCourseId])
+  @@index([lessonId])
 }
+
 
 // Quizzes
 model Quiz {
-  id           String   @id @default(cuid())
+  id           String     @id @default(cuid())
   title        String
   courseId     String
-  course       Course   @relation(fields: [courseId], references: [id])
+  course       Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
   passingScore Int
   Questions    Question[]
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 }
+
 
 // Quiz questions
 model Question {
-  id        String   @id @default(cuid())
+  id        String           @id @default(cuid())
   question  String
   quizId    String
-  quiz      Quiz     @relation(fields: [quizId], references: [id])
+  quiz      Quiz             @relation(fields: [quizId], references: [id], onDelete: Cascade)
   Options   QuestionOption[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
 }
+
 
 // Question options
 model QuestionOption {
-  id        String   @id @default(cuid())
-  option    String
-  isCorrect Boolean
+  id         String   @id @default(cuid())
+  option     String
+  isCorrect  Boolean
   questionId String
-  question  Question @relation(fields: [questionId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 
+model CourseCompany {
+  id String @id @default(cuid())
 
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
+  assignedById String
+  assignedBy   User   @relation("AssignedByUser", fields: [assignedById], references: [id])
+
+  assignedAt DateTime @default(now())
+
+  @@unique([courseId, companyId])
+  @@index([companyId])
+  @@index([courseId])
+  @@index([assignedById])
+}
+
+model Certificate {
+  id          String   @id @default(cuid())
+  userId      String
+  courseId    String
+  userCourseId String
+
+  issuedAt    DateTime @default(now())
+
+  user        User       @relation(fields: [userId], references: [id])
+  course      Course     @relation(fields: [courseId], references: [id])
+  userCourse  UserCourse @relation(fields: [userCourseId], references: [id])
+
+  @@unique([userId, courseId])
+}

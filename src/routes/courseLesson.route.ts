@@ -2,8 +2,6 @@ import { Router } from "express";
 import { courseLessonController } from "../controllers/courseLesson.controller";
 import type { Request, Response } from "express";
 import { upload } from "../middleware/upload";
-import fs from "fs";
-import client from "../lib/filestack";
 import { prisma } from "../lib/prisma";
 
 export const courseLessonRoutes = Router();
@@ -13,50 +11,41 @@ courseLessonRoutes.get("/", courseLessonController.getLessons);
 courseLessonRoutes.get("/:id", courseLessonController.getLessonById);
 courseLessonRoutes.get(
   "/:userCourseId/lessons",
-  courseLessonController.getLessonsByUserCourseId
+  courseLessonController.getLessonsByUserCourseId,
 );
 
 courseLessonRoutes.put("/:id", courseLessonController.updateLesson);
+courseLessonRoutes.delete(
+  "/course/:courseId",
+  courseLessonController.deleteLessonsByCourseId,
+);
 courseLessonRoutes.delete("/:id", courseLessonController.deleteLesson);
 courseLessonRoutes.post(
   "/upload",
-  upload.single("legionella-awareness-revised"),
+  upload.single("file"),
   async (req: Request, res: Response) => {
     try {
-      // Make sure lessonId is sent as a text field in form-data, not as a file field!
       const { lessonId } = req.body;
 
       if (!lessonId) {
-        return res
-          .status(400)
-          .json({ message: "lessonId is required in form-data" });
+        return res.status(400).json({ message: "lessonId is required" });
       }
 
       if (!req.file) {
         return res.status(400).json({ message: "No file uploaded" });
       }
 
-      const filePath = req.file.path;
+      const fileUrl = (req.file as any).location; // 👈 S3 URL
 
-      // Upload file from local disk to Filestack
-      const result = await client.upload(filePath);
-      const fileUrl = result.url;
-
-      // Delete local temporary file
-      fs.unlinkSync(filePath);
-
-      // Update file URL in DB for lesson
       const updatedLesson = await prisma.courseLesson.update({
         where: { id: lessonId },
         data: { file: fileUrl },
       });
 
       res.json({ success: true, lesson: updatedLesson });
-    } catch (error: any) {
-      console.error(error);
-      res
-        .status(500)
-        .json({ success: false, error: error.message || "Upload failed" });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ success: false });
     }
-  }
+  },
 );

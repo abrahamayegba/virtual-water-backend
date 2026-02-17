@@ -1,26 +1,17 @@
 import multer from "multer";
-import path from "path";
-
-// Store files temporarily in "uploads/" folder
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads/");
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    const name = `${Date.now()}-${file.originalname}`;
-    cb(null, name);
-  },
-});
+import multerS3 from "multer-s3";
+import { s3 } from "../lib/s3";
 
 export const upload = multer({
-  storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype === "application/pdf") {
-      cb(null, true);
-    } else {
-      cb(new Error("Only PDFs are allowed"));
-    }
-  },
+  storage: multerS3({
+    s3,
+    bucket: "virtualwaterelearning", // 👈 REQUIRED
+    acl: "public-read",
+    contentType: multerS3.AUTO_CONTENT_TYPE,
+    key: (_req, file, cb) => {
+      const filename = `${Date.now()}-${file.originalname}`;
+      cb(null, `lessons/${filename}`);
+    },
+  }),
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
 });

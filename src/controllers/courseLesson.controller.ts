@@ -5,8 +5,17 @@ export const courseLessonController = {
   // create lesson
   createLesson: async (req: Request, res: Response) => {
     try {
-      const { title, content, typeId, duration, file, courseId } = req.body;
-      if (!title || !content || !typeId || !duration || !courseId) {
+      const { title, content, typeId, duration, lessonNumber, file, courseId } =
+        req.body;
+
+      if (
+        !title ||
+        !content ||
+        !typeId ||
+        !duration ||
+        lessonNumber === undefined ||
+        !courseId
+      ) {
         return res.status(400).json({ message: "All fields are required" });
       }
 
@@ -27,6 +36,7 @@ export const courseLessonController = {
           content,
           typeId: Number(typeId),
           duration: Number(duration),
+          lessonNumber: Number(lessonNumber),
           file: file ?? null,
           courseId,
         },
@@ -99,17 +109,21 @@ export const courseLessonController = {
   updateLesson: async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const { title, content, typeId, duration, file, courseId } = req.body;
+      const { title, content, typeId, duration, lessonNumber, file, courseId } =
+        req.body;
 
       const lesson = await prisma.courseLesson.update({
         where: { id },
         data: {
-          ...(title && { title }),
-          ...(content && { content }),
+          ...(title !== undefined && { title }),
+          ...(content !== undefined && { content }),
           ...(typeId !== undefined && { typeId: Number(typeId) }),
           ...(duration !== undefined && { duration: Number(duration) }),
-          ...(file && { file }),
-          ...(courseId && { courseId }),
+          ...(lessonNumber !== undefined && {
+            lessonNumber: Number(lessonNumber),
+          }),
+          ...(file !== undefined && { file }),
+          ...(courseId !== undefined && { courseId }),
         },
       });
 
@@ -133,6 +147,22 @@ export const courseLessonController = {
       res
         .status(500)
         .json({ message: "Internal server error while deleting lesson" });
+    }
+  },
+
+  // DELETE /api/v1/course-lessons/course/:courseId
+  deleteLessonsByCourseId: async (req: Request, res: Response) => {
+    try {
+      const { courseId } = req.params;
+
+      await prisma.courseLesson.deleteMany({
+        where: { courseId },
+      });
+
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting lessons by courseId:", error);
+      res.status(500).json({ message: "Internal server error" });
     }
   },
 };

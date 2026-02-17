@@ -15,8 +15,11 @@ authRoutes.post("/refresh", authController.refresh);
 // Logout user (invalidate refresh token/session)
 authRoutes.post("/logout", authController.logout);
 
-// Change password 
+// Change password
 authRoutes.post("/change-password", authController.changePassword);
+
+// Get current user (session check)
+authRoutes.get("/me", authController.me);
 
 // Forgot password
 authRoutes.post("/password-reset/request", authController.requestPasswordReset);

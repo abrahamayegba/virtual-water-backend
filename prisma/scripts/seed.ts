@@ -1,24 +1,51 @@
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
-
 async function main() {
-  const userCourseId = "cmhw2ae2p000hch2k5vpobyvh"; // replace with the actual userCourseId
+  console.log("Seeding completed lessons for all completed courses...");
 
-  // update all lessons for this user course
-  const updated = await prisma.userCourseLesson.updateMany({
-    where: {
-      userCourseId,
-    },
-    data: {
-      completed: false,
-      completedAt: null,
-      startedAt: null,
-      spentTime: 0,
-    },
+  // Fetch all UserCourses that are completed
+  const completedCourses = await prisma.userCourse.findMany({
+    where: { completed: true },
+    include: { course: { include: { Lessons: true } } },
   });
 
-  console.log(`Updated ${updated.count} lessons to completed: false`);
+  for (const uc of completedCourses) {
+    const existingLessons = await prisma.userCourseLesson.findMany({
+      where: { userCourseId: uc.id },
+      select: { lessonId: true },
+    });
+    const existingLessonIds = existingLessons.map((l) => l.lessonId);
+
+    // Only create lessons that don't already exist
+    const lessonsToCreate = uc.course.Lessons.filter(
+      (l) => !existingLessonIds.includes(l.id),
+    );
+
+    if (lessonsToCreate.length === 0) continue;
+
+    const now = new Date();
+
+    const createData = lessonsToCreate.map((lesson) => ({
+      userCourseId: uc.id,
+      lessonId: lesson.id,
+      startedAt: now,
+      completed: true,
+      completedAt: uc.completedAt ?? now,
+      spentTime: lesson.duration || 0,
+    }));
+
+    await prisma.userCourseLesson.createMany({
+      data: createData,
+      skipDuplicates: true,
+    });
+
+    console.log(
+      `✅ UserCourse ${uc.id} - added ${createData.length} completed lessons`,
+    );
+  }
+
+  console.log("Seeding finished.");
 }
 
 main()

@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import { prisma } from "../lib/prisma";
+import { hashPassword } from "../auth/utils";
 
 // Controller for User-related endpoints
 export const userControllers = {
@@ -49,10 +50,23 @@ export const userControllers = {
         return res.status(400).json({ message: "All fields are required" });
       }
 
+      // Generate default password as firstname.lastname
+      const [firstName, lastName] = name.split(" ");
+      const defaultPassword = `${firstName.toLowerCase()}.${lastName?.toLowerCase() || ""}`;
+
+      const hashed = await hashPassword(defaultPassword);
+
       const user = await prisma.user.create({
-        data: { name, email, companyId, roleId },
+        data: {
+          name,
+          email,
+          companyId,
+          roleId,
+          passwordHash: hashed,
+        },
       });
-      res.status(201).json({ success: true, message: "User created", user });
+
+      res.status(201).json({ success: true, user, defaultPassword });
     } catch (error) {
       console.error("Error creating user:", error);
       res

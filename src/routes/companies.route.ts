@@ -7,4 +7,5 @@ companyRoutes.post("/", companyController.createCompany);
 companyRoutes.get("/", companyController.getCompanies);
 companyRoutes.get("/:id", companyController.getCompanyById);
 companyRoutes.put("/:id", companyController.updateCompany);
+companyRoutes.get("/:id/full", companyController.getCompanyFull);
 companyRoutes.delete("/:id", companyController.deleteCompany);

@@ -156,7 +156,7 @@ export const userCourseController = {
 
       // 4. Map progress data by lessonId
       const progressMap = new Map(
-        userCourseLessons.map((p) => [p.lessonId, p])
+        userCourseLessons.map((p) => [p.lessonId, p]),
       );
 
       // 5. Combine lessons & progress
@@ -176,6 +176,68 @@ export const userCourseController = {
       res.status(200).json({ success: true, lessons: lessonsWithProgress });
     } catch (error) {
       console.error("Error fetching lessons with progress:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  },
+
+  // GET /api/v1/user-courses/user/:userId/full
+  getUserCoursesWithLessonsAndProgress: async (req: Request, res: Response) => {
+    try {
+      const { userId } = req.params;
+
+      const userCourses = await prisma.userCourse.findMany({
+        where: { userId },
+        include: {
+          course: {
+            include: {
+              category: true,
+              Lessons: {
+                orderBy: { lessonNumber: "asc" },
+                include: {
+                  type: true,
+                  UserCourseLessons: {
+                    where: {
+                      userCourse: {
+                        userId,
+                      },
+                    },
+                    select: {
+                      completed: true,
+                      startedAt: true,
+                      spentTime: true,
+                      completedAt: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      // Normalize lesson progress (1 lesson → 1 progress object)
+      const normalized = userCourses.map((uc) => ({
+        ...uc,
+        course: {
+          ...uc.course,
+          Lessons: uc.course.Lessons.map((lesson) => ({
+            ...lesson,
+            progress: lesson.UserCourseLessons[0] ?? {
+              completed: false,
+              startedAt: null,
+              spentTime: 0,
+              completedAt: null,
+            },
+          })),
+        },
+      }));
+
+      res.status(200).json({
+        success: true,
+        userCourses: normalized,
+      });
+    } catch (error) {
+      console.error("Error fetching user courses with progress:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   },
@@ -216,12 +278,16 @@ export const userCourseController = {
 
   updateUserCourseByUserId: async (req: Request, res: Response) => {
     try {
-      const { userId, id } = req.params; // userId and userCourseId
-      const { courseId, score, completed, completedAt } = req.body;
+      const { userId, id } = req.params; // userCourseId
+      const { score, completed } = req.body;
 
-      // Make sure this userCourse belongs to this user
       const userCourse = await prisma.userCourse.findFirst({
         where: { id, userId },
+        include: {
+          course: {
+            include: { Quizzes: true },
+          },
+        },
       });
 
       if (!userCourse) {
@@ -233,12 +299,35 @@ export const userCourseController = {
       const updated = await prisma.userCourse.update({
         where: { id },
         data: {
-          ...(courseId && { courseId }), // allow changing course
-          ...(score !== undefined && { score }),
           ...(completed !== undefined && { completed }),
-          ...(completedAt && { completedAt: new Date(completedAt) }),
+          ...(completed === true && { completedAt: new Date() }),
+          ...(completed === false && { completedAt: null }),
+          ...(score !== undefined && { score }),
         },
       });
+
+      // 🧠 ISSUE CERTIFICATE HERE
+      if (completed === true && typeof score === "number") {
+        const quiz = userCourse.course.Quizzes[0];
+        const passingScore = quiz?.passingScore ?? 0;
+
+        if (score >= passingScore) {
+          await prisma.certificate.upsert({
+            where: {
+              userId_courseId: {
+                userId,
+                courseId: userCourse.courseId,
+              },
+            },
+            update: {}, // do nothing if exists
+            create: {
+              userId,
+              courseId: userCourse.courseId,
+              userCourseId: userCourse.id,
+            },
+          });
+        }
+      }
 
       res.status(200).json({ success: true, userCourse: updated });
     } catch (error) {

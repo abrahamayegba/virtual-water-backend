@@ -1,5 +1,6 @@
 import express from "express";
 import dotenv from "dotenv";
+dotenv.config();
 import cors from "cors";
 import cookieParser from "cookie-parser";
 
@@ -21,15 +22,13 @@ import { userRoutes } from "./routes/users.route";
 import { authRoutes } from "./routes/auth.routes";
 import { adminRoutes } from "./routes/admins.route";
 import { companyRoutes } from "./routes/companies.route";
-
-dotenv.config();
+import { certificateRoutes } from "./routes/certificate.routes";
+import { reportRoutes } from "./routes/report.routes";
+import { adminDashboardRoutes } from "./routes/adminDashboard.route";
+import courseCompanyRoutes from "./routes/courseCompany.route";
 
 const allowedOrigins = [
-  "http://localhost:5173",
-  "http://52.18.34.158:5173", // if you test frontend on this IP:port
-  "http://34.247.103.158", // deployed frontend
-  "https://34.247.103.158", // if you later enable https
-  "http://34.244.236.173:3000",
+  "http://localhost:3000",
   "https://training.virtualwaterservices.co.uk",
 ];
 
@@ -75,6 +74,10 @@ app.use("/api/v1/companies", companyRoutes);
 app.use("/api/v1/roles", roleRoutes);
 app.use("/api/v1/lesson-types", lessonTypeRoutes);
 app.use("/api/v1/admins", adminRoutes);
+app.use("/api/v1/certificates", certificateRoutes);
+app.use("/api/v1/reports", reportRoutes);
+app.use("/api/v1/admin-dashboard", adminDashboardRoutes);
+app.use("/api/v1/course-companies", courseCompanyRoutes);
 app.use("/api/v1", protectedRoutes);
 
 const port = Number(process.env.PORT) || 8080;

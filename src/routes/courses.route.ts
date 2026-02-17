@@ -4,8 +4,9 @@ import { courseController } from "../controllers/course.controller";
 export const courseRoutes = Router();
 
 courseRoutes.post("/", courseController.createCourse);
+courseRoutes.get("/trainer/:userId", courseController.getCoursesByCreator);
+
 courseRoutes.get("/", courseController.getCourses);
 courseRoutes.get("/:id", courseController.getCourseById);
 courseRoutes.put("/:id", courseController.updateCourse);
 courseRoutes.delete("/:id", courseController.deleteCourse);
-

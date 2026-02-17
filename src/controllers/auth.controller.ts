@@ -9,7 +9,6 @@ import {
   verifyRefreshToken,
   verifyAccessToken,
 } from "../auth/utils";
-import { sendEmail } from "../lib/email";
 
 const REFRESH_TTL_DAYS = Number(process.env.REFRESH_TOKEN_TTL_DAYS ?? 14);
 const refreshCookieOptions = {
@@ -38,7 +37,10 @@ export const authController = {
           .json({ success: false, message: "Email already in use" });
       }
 
+      // Hash password
       const passwordHash = await hashPassword(password);
+
+      // Create user
       const user = await prisma.user.create({
         data: {
           name,
@@ -50,14 +52,81 @@ export const authController = {
         },
       });
 
-      // return minimal user data (do not return passwordHash)
+      // Fetch full user with role & company
+      const fullUser = await prisma.user.findUnique({
+        where: { id: user.id },
+        include: {
+          role: { select: { roleName: true } },
+          company: { select: { companyName: true } },
+        },
+      });
+
+      if (!fullUser) {
+        return res
+          .status(500)
+          .json({ success: false, message: "User creation failed" });
+      }
+
+      // Sign tokens
+      const accessToken = signAccessToken(
+        fullUser.id,
+        fullUser.email,
+        fullUser.role.roleName,
+        fullUser.companyId,
+      );
+
+      const session = await prisma.session.create({
+        data: {
+          userId: fullUser.id,
+          userAgent: req.get("user-agent") ?? null,
+          ip: req.ip,
+          expiresAt: new Date(
+            Date.now() + REFRESH_TTL_DAYS * 24 * 60 * 60 * 1000,
+          ),
+        },
+      });
+
+      const refreshToken = signRefreshToken(
+        fullUser.id,
+        fullUser.email,
+        session.id,
+        fullUser.role.roleName,
+        fullUser.companyId,
+      );
+
+      const refreshTokenHash = await hashPassword(refreshToken);
+
+      await prisma.session.update({
+        where: { id: session.id },
+        data: { refreshTokenHash },
+      });
+
+      // Set cookies
+      res.cookie("refreshToken", refreshToken, refreshCookieOptions);
+      res.cookie("accessToken", accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 15 * 60 * 1000,
+      });
+
       return res.status(201).json({
         success: true,
-        user: { id: user.id, name: user.name, email: user.email },
+        user: {
+          id: fullUser.id,
+          name: fullUser.name,
+          email: fullUser.email,
+          companyId: fullUser.companyId,
+          companyName: fullUser.company.companyName,
+          roleId: fullUser.roleId,
+          roleName: fullUser.role.roleName,
+          passwordSetAt: fullUser.passwordSetAt,
+        },
       });
     } catch (error: any) {
       console.error("Register error:", error);
-      res
+      return res
         .status(500)
         .json({ success: false, message: "Internal server error" });
     }
@@ -73,7 +142,24 @@ export const authController = {
           .json({ success: false, message: "Missing credentials" });
       }
 
-      const user = await prisma.user.findUnique({ where: { email } });
+      const user = await prisma.user.findUnique({
+        where: { email },
+        include: {
+          role: {
+            select: {
+              id: true,
+              roleName: true,
+            },
+          },
+          company: {
+            select: {
+              id: true,
+              companyName: true,
+            },
+          },
+        },
+      });
+
       if (!user || !user.passwordHash) {
         return res
           .status(401)
@@ -88,7 +174,12 @@ export const authController = {
       }
 
       // 1. Sign access token
-      const accessToken = signAccessToken(user.id, user.email);
+      const accessToken = signAccessToken(
+        user.id,
+        user.email,
+        user.role.roleName,
+        user.companyId,
+      );
 
       // 2. Create session in DB first
       const session = await prisma.session.create({
@@ -101,7 +192,13 @@ export const authController = {
       });
 
       // 3. Sign refresh token with session.id as jti
-      const refreshToken = signRefreshToken(user.id, user.email, session.id);
+      const refreshToken = signRefreshToken(
+        user.id,
+        user.email,
+        session.id,
+        user.role.roleName,
+        user.companyId,
+      );
 
       // 4. Store hashed refresh token in the session
       const refreshTokenHash = await hashPassword(refreshToken);
@@ -113,16 +210,28 @@ export const authController = {
       // 5. Set httpOnly cookie for refresh token
       res.cookie("refreshToken", refreshToken, refreshCookieOptions);
 
+      res.cookie("accessToken", accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 15 * 60 * 1000,
+      });
+
       // 6. Return response
       return res.json({
         success: true,
-        accessToken,
         user: {
           id: user.id,
           name: user.name,
           email: user.email,
+
           companyId: user.companyId,
+          companyName: user.company.companyName,
+
           roleId: user.roleId,
+          roleName: user.role.roleName,
+
           passwordSetAt: user.passwordSetAt,
         },
         sessionId: session.id,
@@ -138,9 +247,8 @@ export const authController = {
   refresh: async (req: Request, res: Response) => {
     try {
       const token = req.cookies?.refreshToken;
-      if (!token) {
+      if (!token)
         return res.status(401).json({ success: false, message: "No token" });
-      }
 
       let payload;
       try {
@@ -157,13 +265,11 @@ export const authController = {
       const session = await prisma.session.findUnique({
         where: { id: sessionId },
       });
-
       if (!session || session.revoked || session.expiresAt < new Date()) {
         return res
           .status(401)
           .json({ success: false, message: "Session invalid" });
       }
-
       if (!session.refreshTokenHash) {
         return res
           .status(401)
@@ -172,11 +278,9 @@ export const authController = {
 
       const tokenMatches = await comparePassword(
         token,
-        session.refreshTokenHash
+        session.refreshTokenHash,
       );
-
       if (!tokenMatches) {
-        // revoke all sessions to protect against reuse
         await prisma.session.updateMany({
           where: { userId: session.userId },
           data: { revoked: true },
@@ -192,39 +296,60 @@ export const authController = {
         data: { revoked: true },
       });
 
+      // get user data
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        include: { role: true, company: true },
+      });
+      if (!user)
+        return res
+          .status(404)
+          .json({ success: false, message: "User not found" });
+
       // create new session
-      const newExpiresAt = new Date(
-        Date.now() + REFRESH_TTL_DAYS * 24 * 60 * 60 * 1000
-      );
       const newSession = await prisma.session.create({
         data: {
           userId,
           userAgent: req.get("user-agent") ?? null,
           ip: req.ip,
-          expiresAt: newExpiresAt,
+          expiresAt: new Date(
+            Date.now() + REFRESH_TTL_DAYS * 24 * 60 * 60 * 1000,
+          ),
         },
       });
 
-      // new refresh token
+      // sign new tokens with full payload
       const newRefreshToken = signRefreshToken(
         userId,
-        payload.email,
-        newSession.id
+        user.email,
+        newSession.id,
+        user.role.roleName,
+        user.companyId,
       );
-      const newRefreshHash = await hashPassword(newRefreshToken);
 
+      const newAccessToken = signAccessToken(
+        userId,
+        user.email,
+        user.role.roleName,
+        user.companyId,
+      );
+
+      const newRefreshHash = await hashPassword(newRefreshToken);
       await prisma.session.update({
         where: { id: newSession.id },
         data: { refreshTokenHash: newRefreshHash },
       });
 
-      // new access token
-      const newAccessToken = signAccessToken(userId, payload.email);
-
-      // set cookie
       res.cookie("refreshToken", newRefreshToken, refreshCookieOptions);
+      res.cookie("accessToken", newAccessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 15 * 60 * 1000,
+      });
 
-      return res.json({ success: true, accessToken: newAccessToken });
+      return res.json({ success: true });
     } catch (error: any) {
       console.error("Refresh error:", error);
       return res
@@ -251,13 +376,19 @@ export const authController = {
         }
       }
 
-      // clear cookie
-      res.clearCookie("refreshToken", {
-        path: "/",
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-      });
+      res
+        .clearCookie("refreshToken", {
+          path: "/",
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+        })
+        .clearCookie("accessToken", {
+          path: "/",
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+        });
 
       return res.json({ success: true });
     } catch (error: any) {
@@ -270,41 +401,66 @@ export const authController = {
   // GET /api/v1/auth/me
   me: async (req: Request, res: Response) => {
     try {
-      const authHeader = req.headers.authorization;
-      if (!authHeader?.startsWith("Bearer ")) {
+      const token =
+        req.cookies?.accessToken ||
+        (req.headers.authorization?.startsWith("Bearer ")
+          ? req.headers.authorization.split(" ")[1]
+          : null);
+
+      if (!token) {
         return res
           .status(401)
           .json({ success: false, message: "Missing token" });
       }
-      const token = authHeader.split(" ")[1];
+
       let payload;
       try {
         payload = verifyAccessToken(token);
-      } catch (err) {
+      } catch {
         return res
           .status(401)
           .json({ success: false, message: "Invalid token" });
       }
-      // @ts-ignore sub
+
       const userId = payload.sub as string;
+
       const user = await prisma.user.findUnique({
         where: { id: userId },
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          companyId: true,
-          roleId: true,
+        include: {
+          company: {
+            select: {
+              companyName: true,
+            },
+          },
+          role: {
+            select: {
+              roleName: true,
+            },
+          },
         },
       });
-      if (!user)
+
+      if (!user) {
         return res
           .status(404)
           .json({ success: false, message: "User not found" });
-      return res.json({ success: true, user });
-    } catch (error: any) {
+      }
+
+      return res.json({
+        success: true,
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          companyId: user.companyId,
+          companyName: user.company?.companyName ?? null,
+          roleId: user.roleId,
+          roleName: user.role?.roleName ?? null,
+        },
+      });
+    } catch (error) {
       console.error("Me error:", error);
-      res
+      return res
         .status(500)
         .json({ success: false, message: "Internal server error" });
     }
@@ -333,14 +489,15 @@ export const authController = {
         update: { tokenHash, expiresAt },
       });
 
-      const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${rawToken}&userId=${user.id}`;
+      const resetUrl = `${process.env.FRONTEND_URL}?token=${rawToken}&userId=${user.id}`;
       const html = `
   <p>Click the button below to reset your password:</p>
   <a href="${resetUrl}" style="padding:10px 20px;background:#4CAF50;color:white;text-decoration:none;border-radius:5px;">Reset Password</a>
   <p>This link expires in 1 hour.</p>
 `;
 
-      await sendEmail(user.email, "Password Reset", html);
+      // Instead of sending an email, just log the reset link
+      console.log(`[Password Reset] ${user.email}: ${resetUrl}`);
 
       return res.json({ success: true });
     } catch (error: any) {
@@ -407,14 +564,18 @@ export const authController = {
   // POST /api/v1/auth/change-password
   changePassword: async (req: Request, res: Response) => {
     try {
-      const authHeader = req.headers.authorization;
-      if (!authHeader?.startsWith("Bearer ")) {
+      const token =
+        req.cookies.accessToken ||
+        (req.headers.authorization?.startsWith("Bearer ")
+          ? req.headers.authorization.split(" ")[1]
+          : null);
+
+      if (!token) {
         return res
           .status(401)
           .json({ success: false, message: "Missing token" });
       }
 
-      const token = authHeader.split(" ")[1];
       let payload;
       try {
         payload = verifyAccessToken(token);
@@ -423,7 +584,6 @@ export const authController = {
           .status(401)
           .json({ success: false, message: "Invalid token" });
       }
-
       const userId = payload.sub as string;
       const { oldPassword, newPassword } = req.body;
       if (!oldPassword || !newPassword) {

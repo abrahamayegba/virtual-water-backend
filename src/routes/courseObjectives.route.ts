@@ -5,11 +5,14 @@ export const courseObjectiveRoutes = Router();
 
 courseObjectiveRoutes.post("/", courseObjectiveController.createObjective);
 courseObjectiveRoutes.get("/", courseObjectiveController.getObjectives);
-courseObjectiveRoutes.get("/:id", courseObjectiveController.getObjectiveById);
-courseObjectiveRoutes.put("/:id", courseObjectiveController.updateObjective);
-courseObjectiveRoutes.delete("/:id", courseObjectiveController.deleteObjective);
 courseObjectiveRoutes.get(
   "/course/:courseId",
-  courseObjectiveController.getObjectivesByCourseId
+  courseObjectiveController.getObjectivesByCourseId,
 );
-
+courseObjectiveRoutes.get("/:id", courseObjectiveController.getObjectiveById);
+courseObjectiveRoutes.put("/:id", courseObjectiveController.updateObjective);
+courseObjectiveRoutes.delete(
+  "/course/:courseId",
+  courseObjectiveController.deleteObjectivesByCourseId,
+);
+courseObjectiveRoutes.delete("/:id", courseObjectiveController.deleteObjective);

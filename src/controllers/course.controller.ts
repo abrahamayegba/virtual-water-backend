@@ -17,10 +17,25 @@ export const courseController = {
   // Create a course
   createCourse: async (req: Request, res: Response) => {
     try {
-      const { title, description, categoryId, duration } = req.body;
+      const { title, description, categoryId, duration, createdById } =
+        req.body;
+
+      if (!createdById) {
+        return res.status(400).json({
+          message: "createdById is required",
+        });
+      }
+
       const course = await prisma.course.create({
-        data: { title, description, categoryId, duration },
+        data: {
+          title,
+          description,
+          categoryId,
+          duration,
+          createdById,
+        },
       });
+
       res.status(201).json({ success: true, course });
     } catch (error) {
       console.error("Error creating course:", error);
@@ -34,7 +49,18 @@ export const courseController = {
       const { id } = req.params;
       const course = await prisma.course.findUnique({
         where: { id },
-        include: { category: true, Lessons: true, Quizzes: true },
+        include: {
+          category: true,
+          CourseObjectives: true,
+          Lessons: { include: { type: true } },
+          Quizzes: {
+            include: {
+              Questions: {
+                include: { Options: true },
+              },
+            },
+          },
+        },
       });
 
       if (!course) {
@@ -48,15 +74,52 @@ export const courseController = {
     }
   },
 
+  // courseController.ts
+  getCoursesByCreator: async (req: Request, res: Response) => {
+    try {
+      const { userId } = req.params;
+
+      const courses = await prisma.course.findMany({
+        where: {
+          createdById: userId,
+        },
+        include: {
+          category: true,
+          Lessons: true,
+          Quizzes: {
+            include: {
+              Questions: true,
+            },
+          },
+          UserCourses: true,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      });
+
+      res.status(200).json({ success: true, courses });
+    } catch (error) {
+      console.error("Error fetching trainer courses:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  },
+
   // Update course
   updateCourse: async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const { title, description, categoryId, duration } = req.body;
+      const { title, description, categoryId, duration, status } = req.body;
 
       const course = await prisma.course.update({
         where: { id },
-        data: { title, description, categoryId, duration },
+        data: {
+          ...(title !== undefined && { title }),
+          ...(description !== undefined && { description }),
+          ...(categoryId !== undefined && { categoryId }),
+          ...(duration !== undefined && { duration }),
+          ...(status !== undefined && { status }),
+        },
       });
 
       res.status(200).json({ success: true, course });
