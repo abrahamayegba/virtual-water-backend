@@ -37,6 +37,7 @@
   "dependencies": {
     "@apollo/server": "^5.0.0",
     "@aws-sdk/client-s3": "^3.981.0",
+    "@aws-sdk/client-ses": "^3.992.0",
     "@prisma/client": "^6.15.0",
     "@sendgrid/mail": "^8.1.6",
     "bcrypt": "^6.0.0",

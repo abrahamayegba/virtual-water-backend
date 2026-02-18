@@ -9,6 +9,7 @@ import {
   verifyRefreshToken,
   verifyAccessToken,
 } from "../auth/utils";
+import { sendEmail } from "../lib/email";
 
 const REFRESH_TTL_DAYS = Number(process.env.REFRESH_TOKEN_TTL_DAYS ?? 14);
 const refreshCookieOptions = {
@@ -491,13 +492,33 @@ export const authController = {
 
       const resetUrl = `${process.env.FRONTEND_URL}?token=${rawToken}&userId=${user.id}`;
       const html = `
-  <p>Click the button below to reset your password:</p>
-  <a href="${resetUrl}" style="padding:10px 20px;background:#4CAF50;color:white;text-decoration:none;border-radius:5px;">Reset Password</a>
-  <p>This link expires in 1 hour.</p>
-`;
+        <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.5; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #f9f9f9;">
+          <h2 style="color: #4CAF50; margin-bottom: 16px;">Reset Your Password</h2>
+          <p>Hello,</p>
+          <p>You requested a password reset. Click the button below to set a new password:</p>
+          <p style="text-align: center; margin: 24px 0;">
+            <a href="${resetUrl}" 
+              style="
+                padding: 12px 24px;
+                background-color: #4CAF50;
+                color: white;
+                text-decoration: none;
+                border-radius: 5px;
+                display: inline-block;
+                font-weight: bold;
+              ">
+              Reset Password
+            </a>
+          </p>
+          <p>This link is valid for 1 hour. If you didn’t request a password reset, you can safely ignore this email.</p>
+          <p>Thank you,<br/>Virtual Services Group</p>
+          <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;" />
+          <p style="font-size: 12px; color: #888;">If you’re having trouble clicking the button, copy and paste the URL below into your browser:</p>
+          <p style="font-size: 12px; color: #555; word-break: break-all;">${resetUrl}</p>
+        </div>
+      `;
 
-      // Instead of sending an email, just log the reset link
-      console.log(`[Password Reset] ${user.email}: ${resetUrl}`);
+      await sendEmail(user.email, "Password Reset", html);
 
       return res.json({ success: true });
     } catch (error: any) {

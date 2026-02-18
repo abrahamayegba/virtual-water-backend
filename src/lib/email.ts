@@ -1,22 +1,29 @@
-import sgMail from "@sendgrid/mail";
-
-sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
+// src/lib/sendEmail.ts
+import { SendEmailCommand } from "@aws-sdk/client-ses";
+import { ses } from "./ses";
 
 export async function sendEmail(
   to: string,
   subject: string,
-  htmlContent: string
+  htmlContent: string,
 ) {
   try {
-    await sgMail.send({
-      to,
-      from: { email: process.env.EMAIL_FROM!, name: "Virtual Services" },
-      subject,
-      html: htmlContent,
-    });
-    console.log("Email sent to", to);
-  } catch (error: any) {
-    console.error("SendGrid error:", error.response?.body || error.message);
-    throw new Error("Failed to send email");
+    const params = {
+      Destination: { ToAddresses: [to] },
+      Message: {
+        Subject: { Data: subject },
+        Body: { Html: { Data: htmlContent } },
+      },
+      Source: "abraham.ayegba@virtualservicesgroup.co.uk",
+    };
+
+    const command = new SendEmailCommand(params);
+    const result = await ses.send(command);
+
+    console.log("Email sent:", result.MessageId);
+    return result;
+  } catch (err: any) {
+    console.error("SES send error:", err.message);
+    throw new Error("Failed to send email via SES");
   }
 }

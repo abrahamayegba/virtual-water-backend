@@ -1,3 +1,5 @@
+// prisma/seed.ts
+
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
@@ -5,74 +7,56 @@ const prisma = new PrismaClient();
 async function main() {
   const courseId = "cmhvxn11i0009chvwz1rixhjv";
 
-  const userIds = ["cmg6ij3hn0007chaov4qsf30c"];
+  await prisma.courseLesson.updateMany({
+    where: {
+      courseId,
+    },
+    data: {
+      lessonNumber: null,
+    },
+  });
 
-  for (const userId of userIds) {
-    const existing = await prisma.userCourse.findFirst({
-      where: {
-        userId,
-        courseId,
-      },
-    });
+  await prisma.courseLesson.update({
+    where: { id: "cml835ltt006tch80shj738ag" }, // Part 1
+    data: {
+      title: "Background to Legionnaires Disease",
+      lessonNumber: 1,
+    },
+  });
 
-    if (existing) {
-      console.log(`⏭️  UserCourse already exists for ${userId}`);
-      continue;
-    }
+  await prisma.courseLesson.update({
+    where: { id: "cml835q4h006vch80l0ybks51" }, // Part 2
+    data: {
+      title: "Legislation - Health and Safety Law",
+      lessonNumber: 2,
+    },
+  });
 
-    await prisma.userCourse.create({
-      data: {
-        userId,
-        courseId,
-        score: 0,
-        completed: false,
-        startedAt: new Date(),
-      },
-    });
+  await prisma.courseLesson.update({
+    where: { id: "cml835sp0006xch80o8844kn8" }, // Part 3
+    data: {
+      title: "Medical Aspects",
+      lessonNumber: 3,
+    },
+  });
 
-    console.log(`✅ UserCourse created for ${userId}`);
-  }
+  await prisma.courseLesson.update({
+    where: { id: "cml835vxe006zch80tcjnutac" }, // Part 4
+    data: {
+      title: "Managing Water Systems",
+      lessonNumber: 4,
+    },
+  });
 
-  console.log("All done");
+  await prisma.courseLesson.update({
+    where: { id: "cml835zfa0071ch80qj4eyczw" }, // Part 5
+    data: {
+      title: "Sampling and Biofilms",
+      lessonNumber: 5,
+    },
+  });
 }
 
 main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
-
-
-// import { PrismaClient } from "@prisma/client";
-
-// const prisma = new PrismaClient();
-
-// async function main() {
-//   const courseId = "cmhvxn11i0009chvwz1rixhjv";
-//   const userId = "cmg6ij3hn0007chaov4qsf30c";
-
-//   const deleted = await prisma.userCourse.deleteMany({
-//     where: {
-//       userId,
-//       courseId,
-//     },
-//   });
-
-//   if (deleted.count === 0) {
-//     console.log("⏭️  No UserCourse found to delete");
-//   } else {
-//     console.log(`🗑️  Deleted ${deleted.count} UserCourse record(s)`);
-//   }
-// }
-
-// main()
-//   .catch((e) => {
-//     console.error(e);
-//     process.exit(1);
-//   })
-//   .finally(async () => {
-//     await prisma.$disconnect();
-//   });
+  .catch(console.error)
+  .finally(() => prisma.$disconnect());
