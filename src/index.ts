@@ -26,6 +26,7 @@ import { certificateRoutes } from "./routes/certificate.routes";
 import { reportRoutes } from "./routes/report.routes";
 import { adminDashboardRoutes } from "./routes/adminDashboard.route";
 import courseCompanyRoutes from "./routes/courseCompany.route";
+import { webhookRoutes } from "./routes/webhook.routes";
 
 const allowedOrigins = [
   "http://localhost:3000",
@@ -78,6 +79,7 @@ app.use("/api/v1/certificates", certificateRoutes);
 app.use("/api/v1/reports", reportRoutes);
 app.use("/api/v1/admin-dashboard", adminDashboardRoutes);
 app.use("/api/v1/course-companies", courseCompanyRoutes);
+app.use("/api/v1/webhook", webhookRoutes);
 app.use("/api/v1", protectedRoutes);
 
 const port = Number(process.env.PORT) || 8080;

@@ -289,3 +289,50 @@ model Certificate {
 
   @@unique([userId, courseId])
 }
+
+// THIS IS FOR THE AI CALL AGENT 
+
+model WebhookCustomerCall {
+  id                    String   @id @default(cuid())
+  vapiCallId            String?  @unique
+  customerName          String
+  customerAddress       String
+  customerPhone         String
+  faultDescription      String
+  
+  callStatus            String   @default("pending")
+  inboundCallDuration   Int      @default(0)
+  
+  managerCallId         String?
+  managerNotified       Boolean  @default(false)
+  managerCallStatus     String?
+  managerCallTime       DateTime?
+  
+  inboundCallTime       DateTime @default(now())
+  reportSentTime        DateTime?
+  updatedAt             DateTime @updatedAt
+  
+  reportEmailSent       Boolean  @default(false)
+  reportEmailTo         String?
+  
+  transcript            String?
+  recordingUrl          String?
+  
+  @@index([callStatus])
+  @@index([inboundCallTime])
+  @@index([managerNotified])
+}
+
+model WebhookUser {
+  id        String  @id @default(cuid())
+  email     String  @unique
+  password  String
+  name      String
+  phone     String?
+  role      String  @default("viewer")
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([email])
+}
