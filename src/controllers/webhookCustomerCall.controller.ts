@@ -3,6 +3,8 @@ import type { Request, Response } from "express";
 import { prisma } from "../lib/prisma";
 import { sendEmail } from "../lib/email";
 import { triggerManagerCall } from "../services/managerCall.service";
+import dotenv from "dotenv";
+dotenv.config(); // must be called before using process.env
 
 export async function handleCustomerCall(req: Request, res: Response) {
   try {
@@ -53,11 +55,63 @@ export async function handleCustomerCall(req: Request, res: Response) {
       },
     });
 
-    // await triggerManagerCall(call.id);
+    await triggerManagerCall(call.id);
 
     return res.status(200).json({ success: true });
   } catch (err) {
     console.error("Webhook error:", err);
     return res.status(500).json({ error: "Failed to process call" });
+  }
+}
+
+export async function handleVapiWebhook(req: Request, res: Response) {
+  try {
+    const body = req.body;
+    const msg = body.message; // ← exact wrapper you saw on webhook.site
+
+    if (!msg) {
+      console.error("Invalid Vapi payload:", body);
+      return res.status(200).json({ success: true });
+    }
+
+    const eventType = msg.type;
+    const callId = msg.call?.metadata?.callId;
+    const endedReason = msg.endedReason || msg.call?.endedReason;
+
+    console.log(
+      `📨 Vapi webhook: ${eventType} | callId: ${callId} | endedReason: ${endedReason}`,
+    );
+
+    if (
+      (eventType === "end-of-call-report" || eventType === "status-update") &&
+      callId &&
+      endedReason
+    ) {
+      const isReached = ![
+        "customer-did-not-answer",
+        "voicemail",
+        "customer-busy",
+      ].includes(endedReason);
+
+      await prisma.webhookCustomerCall.update({
+        where: { id: callId },
+        data: {
+          managerCallStatus: isReached
+            ? "reached"
+            : endedReason === "voicemail"
+              ? "voicemail"
+              : "failed",
+        },
+      });
+
+      console.log(
+        `✅ DB updated: ${callId} → ${isReached ? "REACHED" : endedReason}`,
+      );
+    }
+
+    return res.status(200).json({ success: true });
+  } catch (error) {
+    console.error("Vapi webhook error:", error);
+    return res.status(200).json({ success: true });
   }
 }
