@@ -67,7 +67,7 @@ export async function handleCustomerCall(req: Request, res: Response) {
 export async function handleVapiWebhook(req: Request, res: Response) {
   try {
     const body = req.body;
-    const msg = body.message; // ← exact wrapper you saw on webhook.site
+    const msg = body.message;
 
     if (!msg) {
       console.error("Invalid Vapi payload:", body);
@@ -82,17 +82,21 @@ export async function handleVapiWebhook(req: Request, res: Response) {
       `📨 Vapi webhook: ${eventType} | callId: ${callId} | endedReason: ${endedReason}`,
     );
 
-    if (
-      (eventType === "end-of-call-report" || eventType === "status-update") &&
-      callId &&
-      endedReason
-    ) {
+    // Only act once when the call is fully finished
+    if (eventType === "end-of-call-report" && callId && endedReason) {
+      const record = await prisma.webhookCustomerCall.findUnique({
+        where: { id: callId },
+      });
+
+      if (!record) return res.status(200).json({ success: true });
+
       const isReached = ![
         "customer-did-not-answer",
         "voicemail",
         "customer-busy",
       ].includes(endedReason);
 
+      // Update final status
       await prisma.webhookCustomerCall.update({
         where: { id: callId },
         data: {
@@ -107,6 +111,18 @@ export async function handleVapiWebhook(req: Request, res: Response) {
       console.log(
         `✅ DB updated: ${callId} → ${isReached ? "REACHED" : endedReason}`,
       );
+
+      // Retry ONCE if voicemail and this was first attempt
+      if (
+        endedReason === "voicemail" &&
+        record.managerCallStatus === "pending"
+      ) {
+        console.log("📞 Voicemail detected. Retrying once...");
+
+        setTimeout(() => {
+          triggerManagerCall(callId);
+        }, 20000); // retry after 20 seconds
+      }
     }
 
     return res.status(200).json({ success: true });
