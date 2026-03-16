@@ -6,27 +6,21 @@ dotenv.config();
 
 export async function handleInboundCall(req: Request, res: Response) {
   try {
-    const msg = req.body?.message;
+    const eventType = req.body?.message?.type;
 
-    // Only handle initial call events
-    const initialCallTypes = ["assistant.started"];
-    if (!msg || !initialCallTypes.includes(msg.type)) {
-      console.log("Ignoring non-initial call event:", msg?.type);
+    if (eventType !== "assistant.started") {
       return res.status(200).json({ success: true });
     }
 
-    // Extract caller number from known paths
     const callerNumber =
-      req.body?.call?.customer?.number ||
       req.body?.customer?.number ||
-      req.body?.call?.from;
+      req.body?.message?.artifact?.variableValues?.customer?.number;
 
     if (!callerNumber) {
-      console.warn("Inbound call ignored: missing caller number", req.body);
+      console.warn("No caller number found");
       return res.status(200).json({ success: true });
     }
 
-    // Check DB for existing open call where manager hasn't been reached
     const existingOpenCall = await prisma.webhookCustomerCall.findFirst({
       where: {
         customerPhone: callerNumber,
@@ -38,16 +32,8 @@ export async function handleInboundCall(req: Request, res: Response) {
 
     const isRepeat = !!existingOpenCall;
 
-    // Log the info for confirmation
-    console.log("Inbound call response:", {
-      callerNumber,
-      isRepeat,
-      previousIssue: existingOpenCall?.faultDescription,
-      previousAddress: existingOpenCall?.customerAddress,
-      repeatCaseId: existingOpenCall?.id,
-    });
+    console.log("Repeat check:", { callerNumber, isRepeat });
 
-    // Respond to Vapi
     return res.json({
       assistantId: process.env.VAPI_CUSTOMER_ASSISTANT_ID,
       assistantOverrides: {
