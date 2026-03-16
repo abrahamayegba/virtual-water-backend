@@ -8,16 +8,14 @@ export async function handleInboundCall(req: Request, res: Response) {
   try {
     const msg = req.body?.message;
 
-    // Ignore events that are not the start of a call
-    if (
-      !msg ||
-      (msg.type !== "assistant-request" && msg.type !== "call-start")
-    ) {
+    // Only handle initial call events
+    const initialCallTypes = ["assistant.started"];
+    if (!msg || !initialCallTypes.includes(msg.type)) {
       console.log("Ignoring non-initial call event:", msg?.type);
       return res.status(200).json({ success: true });
     }
 
-    // Attempt to get caller number from known paths
+    // Extract caller number from known paths
     const callerNumber =
       req.body?.call?.customer?.number ||
       req.body?.customer?.number ||
@@ -40,7 +38,7 @@ export async function handleInboundCall(req: Request, res: Response) {
 
     const isRepeat = !!existingOpenCall;
 
-    // Log the info for debugging / confirmation
+    // Log the info for confirmation
     console.log("Inbound call response:", {
       callerNumber,
       isRepeat,
@@ -49,6 +47,7 @@ export async function handleInboundCall(req: Request, res: Response) {
       repeatCaseId: existingOpenCall?.id,
     });
 
+    // Respond to Vapi
     return res.json({
       assistantId: process.env.VAPI_CUSTOMER_ASSISTANT_ID,
       assistantOverrides: {
