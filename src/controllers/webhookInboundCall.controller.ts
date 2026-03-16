@@ -1,28 +1,53 @@
 import { Request, Response } from "express";
 import { prisma } from "../lib/prisma";
 import dotenv from "dotenv";
+
 dotenv.config();
 
 export async function handleInboundCall(req: Request, res: Response) {
   try {
-    const callerNumber = req.body?.call?.customer?.number;
+    const msg = req.body?.message;
+
+    // Ignore events that are not the start of a call
+    if (
+      !msg ||
+      (msg.type !== "assistant-request" && msg.type !== "call-start")
+    ) {
+      console.log("Ignoring non-initial call event:", msg?.type);
+      return res.status(200).json({ success: true });
+    }
+
+    // Attempt to get caller number from known paths
+    const callerNumber =
+      req.body?.call?.customer?.number ||
+      req.body?.customer?.number ||
+      req.body?.call?.from;
 
     if (!callerNumber) {
-      console.error("No caller number found in payload:", req.body);
-      return res.status(400).json({ error: "Missing caller number" });
+      console.warn("Inbound call ignored: missing caller number", req.body);
+      return res.status(200).json({ success: true });
     }
 
     // Check DB for existing open call where manager hasn't been reached
     const existingOpenCall = await prisma.webhookCustomerCall.findFirst({
       where: {
         customerPhone: callerNumber,
-        managerCallStatus: { not: "reached" }, // only consider calls where manager hasn't been reached
+        managerCallStatus: { not: "reached" },
         callStatus: "pending",
       },
       orderBy: { inboundCallTime: "desc" },
     });
 
     const isRepeat = !!existingOpenCall;
+
+    // Log the info for debugging / confirmation
+    console.log("Inbound call response:", {
+      callerNumber,
+      isRepeat,
+      previousIssue: existingOpenCall?.faultDescription,
+      previousAddress: existingOpenCall?.customerAddress,
+      repeatCaseId: existingOpenCall?.id,
+    });
 
     return res.json({
       assistantId: process.env.VAPI_CUSTOMER_ASSISTANT_ID,
