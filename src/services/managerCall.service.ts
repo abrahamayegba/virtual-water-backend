@@ -17,7 +17,7 @@ export async function triggerManagerCall(callId: string) {
         address: call.customerAddress || "",
         fault_description: call.faultDescription || "",
         property_type: call.propertyType || "domestic",
-        is_emergency: call.isEmergency || false,
+        is_emergency: !!call.isEmergency,
         additional_notes: call.additionalNotes || "",
       },
     },
