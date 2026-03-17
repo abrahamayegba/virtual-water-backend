@@ -25,7 +25,7 @@ export async function handleCustomerCall(req: Request, res: Response) {
       !postcode ||
       !fault_description ||
       !property_type ||
-      typeof is_emergency !== "boolean"
+      !is_emergency // now check if string exists
     ) {
       return res.status(400).json({ error: "Missing required fields" });
     }
@@ -53,7 +53,7 @@ export async function handleCustomerCall(req: Request, res: Response) {
       <p><strong>Address:</strong> ${address}</p>
       <p><strong>Postcode:</strong> ${postcode}</p>
       <p><strong>Property Type:</strong> ${normalisedPropertyType}</p>
-      <p><strong>Emergency:</strong> ${is_emergency ? "Yes" : "No"}</p>
+      <p><strong>Emergency:</strong> ${is_emergency}</p>
       <p><strong>Issue:</strong> ${fault_description}</p>
       <p><strong>Notes:</strong> ${additional_notes || "None"}</p>
     `;

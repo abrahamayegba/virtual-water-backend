@@ -301,7 +301,7 @@ model WebhookCustomerCall {
   faultDescription      String
 
   propertyType          String?     // "commercial" | "domestic"
-  isEmergency           Boolean  @default(false)
+  isEmergency           String?
   additionalNotes       String?     // NEW: extra notes from caller
 
   callStatus            String   @default("pending")
