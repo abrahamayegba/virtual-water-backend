@@ -15,11 +15,24 @@ export async function handleCustomerCall(req: Request, res: Response) {
       postcode,
       fault_description,
       additional_notes,
+      property_type,
+      is_emergency,
     } = req.body;
 
-    if (!name || !address || !postcode || !fault_description) {
+    if (
+      !name ||
+      !address ||
+      !postcode ||
+      !fault_description ||
+      !property_type ||
+      typeof is_emergency !== "boolean"
+    ) {
       return res.status(400).json({ error: "Missing required fields" });
     }
+
+    // Normalise property type
+    const normalisedPropertyType =
+      property_type.toLowerCase() === "commercial" ? "commercial" : "domestic";
 
     const call = await prisma.webhookCustomerCall.create({
       data: {
@@ -27,23 +40,29 @@ export async function handleCustomerCall(req: Request, res: Response) {
         customerPhone: caller_number || "",
         customerAddress: `${address}, ${postcode}`,
         faultDescription: fault_description,
+        propertyType: normalisedPropertyType,
+        isEmergency: is_emergency,
         callStatus: "completed",
       },
     });
 
     const html = `
-      <h2>Emergency Call Received</h2>
+      <h2>Maintenance Call Received</h2>
       <p><strong>Name:</strong> ${name}</p>
       <p><strong>Phone:</strong> ${caller_number || "Not provided"}</p>
       <p><strong>Address:</strong> ${address}</p>
       <p><strong>Postcode:</strong> ${postcode}</p>
+      <p><strong>Property Type:</strong> ${normalisedPropertyType}</p>
+      <p><strong>Emergency:</strong> ${is_emergency ? "Yes" : "No"}</p>
       <p><strong>Issue:</strong> ${fault_description}</p>
       <p><strong>Notes:</strong> ${additional_notes || "None"}</p>
     `;
 
     await sendEmail(
       process.env.MANAGER_EMAIL as string,
-      "Emergency Maintenance Call",
+      is_emergency
+        ? "🚨 Emergency Maintenance Call"
+        : "Maintenance Call Report",
       html,
     );
 

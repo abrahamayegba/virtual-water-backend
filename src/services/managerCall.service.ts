@@ -4,7 +4,25 @@ export async function triggerManagerCall(callId: string) {
   const call = await prisma.webhookCustomerCall.findUnique({
     where: { id: callId },
   });
-  if (!call) throw new Error("Call not found");
+  if (!call) throw new Error(`Call not found: ${callId}`);
+
+  const vapiBody = {
+    assistantId: process.env.VAPI_MANAGER_ASSISTANT_ID,
+    phoneNumberId: process.env.VAPI_PHONE_NUMBER_ID,
+    customer: { number: process.env.MANAGER_PHONE_NUMBER },
+    assistantOverrides: {
+      variableValues: {
+        caller_full_name: call.customerName,
+        caller_number: call.customerPhone || "",
+        address: call.customerAddress || "",
+        fault_description: call.faultDescription || "",
+        property_type: call.propertyType || "domestic",
+        is_emergency: call.isEmergency || false,
+        additional_notes: call.additionalNotes || "",
+      },
+    },
+    metadata: { callId: call.id },
+  };
 
   const response = await fetch("https://api.vapi.ai/call", {
     method: "POST",
@@ -12,25 +30,12 @@ export async function triggerManagerCall(callId: string) {
       Authorization: `Bearer ${process.env.VAPI_API_KEY}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      assistantId: process.env.VAPI_MANAGER_ASSISTANT_ID,
-      phoneNumberId: process.env.VAPI_PHONE_NUMBER_ID,
-      customer: { number: process.env.MANAGER_PHONE_NUMBER },
-      assistantOverrides: {
-        variableValues: {
-          name: call.customerName,
-          phone: call.customerPhone,
-          address: call.customerAddress,
-          fault_description: call.faultDescription,
-        },
-      },
-      metadata: { callId: call.id },
-    }),
+    body: JSON.stringify(vapiBody),
   });
 
   if (!response.ok) {
     const err = await response.text();
-    console.error("Vapi API error:", err);
+    console.error(`Vapi API error for callId ${callId}:`, err);
     throw new Error("Vapi call failed");
   }
 
@@ -47,6 +52,5 @@ export async function triggerManagerCall(callId: string) {
   });
 
   console.log(`✅ Manager call triggered! Vapi ID: ${vapiCallData.id}`);
-  console.log("Webhook will update status automatically.");
   return vapiCallData;
 }

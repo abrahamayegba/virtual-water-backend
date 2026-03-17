@@ -299,28 +299,36 @@ model WebhookCustomerCall {
   customerAddress       String
   customerPhone         String
   faultDescription      String
-  
+
+  propertyType          String?     // "commercial" | "domestic"
+  isEmergency           Boolean  @default(false)
+  additionalNotes       String?     // NEW: extra notes from caller
+
   callStatus            String   @default("pending")
   inboundCallDuration   Int      @default(0)
-  
+
   managerCallId         String?
   managerNotified       Boolean  @default(false)
   managerCallStatus     String?
   managerCallTime       DateTime?
-  
+    managerAction         String?  // NEW: what manager decides
+  managerActionTime     DateTime? // NEW: timestamp
+
   inboundCallTime       DateTime @default(now())
   reportSentTime        DateTime?
   updatedAt             DateTime @updatedAt
-  
+
   reportEmailSent       Boolean  @default(false)
   reportEmailTo         String?
-  
+
   transcript            String?
   recordingUrl          String?
-  
+
   @@index([callStatus])
   @@index([inboundCallTime])
   @@index([managerNotified])
+  @@index([isEmergency])
+  @@index([propertyType])
 }
 
 model WebhookUser {
