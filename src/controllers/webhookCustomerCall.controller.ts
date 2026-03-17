@@ -60,7 +60,7 @@ export async function handleCustomerCall(req: Request, res: Response) {
 
     await sendEmail(
       process.env.MANAGER_EMAIL as string,
-      is_emergency
+      is_emergency === "an emergency"
         ? "🚨 Emergency Maintenance Call"
         : "Maintenance Call Report",
       html,
