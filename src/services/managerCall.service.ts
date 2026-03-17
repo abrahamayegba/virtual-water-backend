@@ -19,9 +19,9 @@ export async function triggerManagerCall(callId: string) {
         property_type: call.propertyType || "domestic",
         is_emergency: call.isEmergency,
         additional_notes: call.additionalNotes || "",
+        callId: callId,
       },
     },
-    metadata: { callId: callId },
   };
 
   const response = await fetch("https://api.vapi.ai/call", {
