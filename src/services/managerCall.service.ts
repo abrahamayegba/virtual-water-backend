@@ -17,11 +17,11 @@ export async function triggerManagerCall(callId: string) {
         address: call.customerAddress || "",
         fault_description: call.faultDescription || "",
         property_type: call.propertyType || "domestic",
-        is_emergency: !!call.isEmergency,
+        is_emergency: call.isEmergency,
         additional_notes: call.additionalNotes || "",
       },
     },
-    metadata: { callId: call.id },
+    metadata: { callId: callId },
   };
 
   const response = await fetch("https://api.vapi.ai/call", {
