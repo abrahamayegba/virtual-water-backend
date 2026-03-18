@@ -6,11 +6,17 @@ export async function triggerManagerActionAgent(callId: string) {
   });
   if (!call) throw new Error(`Call not found: ${callId}`);
 
+  const phoneNumber = call.customerPhone
+    ? call.customerPhone.startsWith("+")
+      ? call.customerPhone
+      : "+44" + call.customerPhone.replace(/^0/, "")
+    : "";
+
   // Only pass manager action, property type, and customer name
   const vapiBody = {
     assistantId: process.env.VAPI_MANAGER_ACTION_ASSISTANT_ID,
     phoneNumberId: process.env.VAPI_PHONE_NUMBER_ID,
-    customer: { number: call.customerPhone }, // customer number
+    customer: { number: phoneNumber }, // customer number
     assistantOverrides: {
       variableValues: {
         callId,
