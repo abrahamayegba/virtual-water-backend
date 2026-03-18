@@ -7,14 +7,18 @@ dotenv.config();
 export async function handleInboundCall(req: Request, res: Response) {
   try {
     const callerNumber =
+      req.body?.message?.customer?.number || // ← correct path
+      req.body?.message?.call?.customer?.number || // fallback
       req.body?.customer?.number ||
-      req.body?.message?.artifact?.variableValues?.customer?.number ||
-      req.body?.phoneNumber || // Add this
-      req.body?.from; // And this
+      req.body?.phoneNumber ||
+      req.body?.from;
 
     if (!callerNumber) {
       console.warn("[v0] No caller number found in webhook");
-      return res.status(200).json({ success: true });
+      // Still return the assistant so the call connects
+      return res.status(200).json({
+        assistantId: process.env.VAPI_CUSTOMER_ASSISTANT_ID,
+      });
     }
 
     console.log("[v0] Processing webhook for caller:", callerNumber);
@@ -36,7 +40,6 @@ export async function handleInboundCall(req: Request, res: Response) {
       foundCall: !!existingOpenCall,
     });
 
-    // ✅ Return assistantOverrides on INITIAL webhook call
     return res.json({
       assistantId: process.env.VAPI_CUSTOMER_ASSISTANT_ID,
       assistantOverrides: {
@@ -53,6 +56,9 @@ export async function handleInboundCall(req: Request, res: Response) {
     });
   } catch (err) {
     console.error("[v0] Inbound call error:", err);
-    return res.status(200).json({ success: true }); // Return 200 even on error
+    // Still return the assistant so the call connects
+    return res.status(200).json({
+      assistantId: process.env.VAPI_CUSTOMER_ASSISTANT_ID,
+    });
   }
 }
