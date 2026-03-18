@@ -6,20 +6,18 @@ dotenv.config();
 
 export async function handleInboundCall(req: Request, res: Response) {
   try {
-    const eventType = req.body?.message?.type;
-
-    if (eventType !== "assistant.started") {
-      return res.status(200).json({ success: true });
-    }
-
     const callerNumber =
       req.body?.customer?.number ||
-      req.body?.message?.artifact?.variableValues?.customer?.number;
+      req.body?.message?.artifact?.variableValues?.customer?.number ||
+      req.body?.phoneNumber || // Add this
+      req.body?.from; // And this
 
     if (!callerNumber) {
-      console.warn("No caller number found");
+      console.warn("[v0] No caller number found in webhook");
       return res.status(200).json({ success: true });
     }
+
+    console.log("[v0] Processing webhook for caller:", callerNumber);
 
     const existingOpenCall = await prisma.webhookCustomerCall.findFirst({
       where: {
@@ -32,8 +30,13 @@ export async function handleInboundCall(req: Request, res: Response) {
 
     const isRepeat = !!existingOpenCall;
 
-    console.log("Repeat check:", { callerNumber, isRepeat });
+    console.log("[v0] Repeat check:", {
+      callerNumber,
+      isRepeat,
+      foundCall: !!existingOpenCall,
+    });
 
+    // ✅ Return assistantOverrides on INITIAL webhook call
     return res.json({
       assistantId: process.env.VAPI_CUSTOMER_ASSISTANT_ID,
       assistantOverrides: {
@@ -41,7 +44,7 @@ export async function handleInboundCall(req: Request, res: Response) {
           is_repeat: isRepeat,
           previous_issue: existingOpenCall?.faultDescription || "",
           previous_address: existingOpenCall?.customerAddress || "",
-          caller_number: callerNumber, // 👈 add this
+          caller_number: callerNumber,
         },
       },
       metadata: {
@@ -49,7 +52,7 @@ export async function handleInboundCall(req: Request, res: Response) {
       },
     });
   } catch (err) {
-    console.error("Inbound call error:", err);
-    return res.status(500).json({ error: "Failed to check repeat caller" });
+    console.error("[v0] Inbound call error:", err);
+    return res.status(200).json({ success: true }); // Return 200 even on error
   }
 }
