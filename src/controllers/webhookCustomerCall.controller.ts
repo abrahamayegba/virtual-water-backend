@@ -101,12 +101,13 @@ export async function handleVapiWebhook(req: Request, res: Response) {
       `📨 Vapi webhook: ${eventType} | callId: ${callId} | endedReason: ${endedReason}`,
     );
 
-    // Only act once when the call is fully finished
+    // ----------------------------
+    // Handle end-of-call (manager AI)
+    // ----------------------------
     if (eventType === "end-of-call-report" && callId && endedReason) {
       const record = await prisma.webhookCustomerCall.findUnique({
         where: { id: callId },
       });
-
       if (!record) return res.status(200).json({ success: true });
 
       const isReached = ![
@@ -115,7 +116,6 @@ export async function handleVapiWebhook(req: Request, res: Response) {
         "customer-busy",
       ].includes(endedReason);
 
-      // Update final status
       await prisma.webhookCustomerCall.update({
         where: { id: callId },
         data: {
@@ -131,16 +131,12 @@ export async function handleVapiWebhook(req: Request, res: Response) {
         `✅ DB updated: ${callId} → ${isReached ? "REACHED" : endedReason}`,
       );
 
-      // Retry ONCE if voicemail and this was first attempt
       if (
         endedReason === "voicemail" &&
         record.managerCallStatus === "pending"
       ) {
         console.log("📞 Voicemail detected. Retrying once...");
-
-        setTimeout(() => {
-          triggerManagerCall(callId);
-        }, 20000); // retry after 20 seconds
+        setTimeout(() => triggerManagerCall(callId), 20000);
       }
     }
 
