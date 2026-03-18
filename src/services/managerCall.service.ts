@@ -1,4 +1,7 @@
 import { prisma } from "../lib/prisma";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 export async function triggerManagerCall(callId: string) {
   const call = await prisma.webhookCustomerCall.findUnique({

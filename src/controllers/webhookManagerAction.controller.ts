@@ -2,6 +2,9 @@
 import type { Request, Response } from "express";
 import { prisma } from "../lib/prisma";
 import { triggerManagerActionAgent } from "../services/managerAction.service";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 export async function handleManagerAction(req: Request, res: Response) {
   try {
