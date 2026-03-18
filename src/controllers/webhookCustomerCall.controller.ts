@@ -34,10 +34,12 @@ export async function handleCustomerCall(req: Request, res: Response) {
     const normalisedPropertyType =
       property_type.toLowerCase() === "commercial" ? "commercial" : "domestic";
 
+    const cleanedNumber = normaliseUKNumber(caller_number);
+
     const call = await prisma.webhookCustomerCall.create({
       data: {
         customerName: name,
-        customerPhone: caller_number || "",
+        customerPhone: cleanedNumber || "",
         customerAddress: `${address}, ${postcode}`,
         faultDescription: fault_description,
         propertyType: normalisedPropertyType,
@@ -49,7 +51,7 @@ export async function handleCustomerCall(req: Request, res: Response) {
     const html = `
       <h2>Maintenance Call Received</h2>
       <p><strong>Name:</strong> ${name}</p>
-      <p><strong>Phone:</strong> ${caller_number || "Not provided"}</p>
+      <p><strong>Phone:</strong> ${cleanedNumber || "Not provided"}</p>
       <p><strong>Address:</strong> ${address}</p>
       <p><strong>Postcode:</strong> ${postcode}</p>
       <p><strong>Property Type:</strong> ${normalisedPropertyType}</p>
@@ -145,4 +147,24 @@ export async function handleVapiWebhook(req: Request, res: Response) {
     console.error("Vapi webhook error:", error);
     return res.status(200).json({ success: true });
   }
+}
+function normaliseUKNumber(input?: string) {
+  if (!input) return "";
+
+  const cleaned = input.replace(/[^\d+]/g, "").trim();
+
+  // Already correct format
+  if (cleaned.startsWith("+44")) return cleaned;
+
+  // Convert 07XXXXXXXXX → +447XXXXXXXXX
+  if (cleaned.startsWith("07")) {
+    return "+44" + cleaned.substring(1);
+  }
+
+  // Convert 447XXXXXXXXX → +447XXXXXXXXX
+  if (cleaned.startsWith("44") && !cleaned.startsWith("+44")) {
+    return "+" + cleaned;
+  }
+
+  return cleaned; // fallback
 }

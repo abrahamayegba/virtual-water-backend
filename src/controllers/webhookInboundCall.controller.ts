@@ -41,6 +41,7 @@ export async function handleInboundCall(req: Request, res: Response) {
           is_repeat: isRepeat,
           previous_issue: existingOpenCall?.faultDescription || "",
           previous_address: existingOpenCall?.customerAddress || "",
+          caller_number: callerNumber, // 👈 add this
         },
       },
       metadata: {
