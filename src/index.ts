@@ -29,6 +29,7 @@ import courseCompanyRoutes from "./routes/courseCompany.route";
 import { webhookRoutes } from "./routes/webhook.routes";
 import { inboundRoutes } from "./routes/webhookInboundCall.route";
 import { managerActionRoutes } from "./routes/webhookManagerAction.route";
+import WebhookToolsRouter from "./routes/webhookTools.route";
 
 const allowedOrigins = [
   "http://localhost:3000",
@@ -84,6 +85,7 @@ app.use("/api/v1/course-companies", courseCompanyRoutes);
 app.use("/api/v1/webhook", webhookRoutes);
 app.use("/api/v1/webhookInboundCall", inboundRoutes);
 app.use("/api/v1/webhookManagerAction", managerActionRoutes);
+app.use("/api/v1/webhookTools", WebhookToolsRouter);
 app.use("/api/v1", protectedRoutes);
 
 const port = Number(process.env.PORT) || 8080;

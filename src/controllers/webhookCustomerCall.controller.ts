@@ -42,6 +42,7 @@ export async function handleCustomerCall(req: Request, res: Response) {
         customerPhone: cleanedNumber || "",
         customerAddress: `${address}, ${postcode}`,
         faultDescription: fault_description,
+        additionalNotes: additional_notes || "",
         propertyType: normalisedPropertyType,
         isEmergency: is_emergency,
         callStatus: "completed",
