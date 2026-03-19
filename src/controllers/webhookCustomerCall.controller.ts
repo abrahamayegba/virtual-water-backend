@@ -40,7 +40,7 @@ export async function handleCustomerCall(req: Request, res: Response) {
       data: {
         customerName: name,
         customerPhone: cleanedNumber || "",
-        customerAddress: `${address}, ${postcode}`,
+        customerAddress: `${address}`,
         faultDescription: fault_description,
         additionalNotes: additional_notes || "",
         propertyType: normalisedPropertyType,
