@@ -13,6 +13,7 @@ export async function triggerManagerCall(callId: string) {
     assistantId: process.env.VAPI_MANAGER_ASSISTANT_ID,
     phoneNumberId: process.env.VAPI_PHONE_NUMBER_ID,
     customer: { number: process.env.MANAGER_PHONE_NUMBER },
+    metadata: { callId }, // ← add this
     assistantOverrides: {
       variableValues: {
         caller_full_name: call.customerName,

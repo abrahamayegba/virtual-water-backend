@@ -27,14 +27,13 @@ export async function handleInboundCall(req: Request, res: Response) {
       where: {
         customerPhone: callerNumber,
         managerCallStatus: { not: "reached" },
-        callStatus: "pending",
       },
       orderBy: { inboundCallTime: "desc" },
     });
 
     const isRepeat = !!existingOpenCall;
 
-    console.log("[v0] Repeat check:", {
+    console.log("Repeat check:", {
       callerNumber,
       isRepeat,
       foundCall: !!existingOpenCall,
