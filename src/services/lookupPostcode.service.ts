@@ -1,5 +1,9 @@
 export async function lookupPostcodeService(postcode: string) {
-  const sanitised = postcode.replace(/\s+/g, "").toUpperCase();
+  const sanitised = postcode
+    .replace(/\s+/g, "")
+    .toUpperCase()
+    .replace(/O/g, "0"); // letter O → zero
+
   const response = await fetch(
     `https://api.postcodes.io/postcodes/${sanitised}`,
   );
