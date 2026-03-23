@@ -183,6 +183,7 @@ export const companyController = {
           id: company.id,
           companyName: company.companyName,
           companyEmail: company.companyEmail,
+          logoUrl: company.logoUrl ?? null,
           industry: company.industry,
           status: company.status,
           maxUsers: company.maxUsers,

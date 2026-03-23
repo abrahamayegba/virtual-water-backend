@@ -30,6 +30,7 @@ import { webhookRoutes } from "./routes/webhook.routes";
 import { inboundRoutes } from "./routes/webhookInboundCall.route";
 import { managerActionRoutes } from "./routes/webhookManagerAction.route";
 import WebhookToolsRouter from "./routes/webhookTools.route";
+import { feedbackRoutes } from "./routes/courseFeedback.route";
 
 const allowedOrigins = [
   "http://localhost:3000",
@@ -82,6 +83,7 @@ app.use("/api/v1/certificates", certificateRoutes);
 app.use("/api/v1/reports", reportRoutes);
 app.use("/api/v1/admin-dashboard", adminDashboardRoutes);
 app.use("/api/v1/course-companies", courseCompanyRoutes);
+app.use("/api/v1/course-feedback", feedbackRoutes);
 app.use("/api/v1/webhook", webhookRoutes);
 app.use("/api/v1/webhookInboundCall", inboundRoutes);
 app.use("/api/v1/webhookManagerAction", managerActionRoutes);

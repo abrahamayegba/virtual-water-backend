@@ -63,6 +63,7 @@ model Company {
   Users        User[]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  logoUrl      String?
 
   courseCompanies CourseCompany[]
 }
@@ -86,8 +87,10 @@ model User {
   passwordReset  PasswordReset?
   createdCourses Course[]
   certificates      Certificate[]
+    CourseFeedback CourseFeedback[]
 
   assignedCourses CourseCompany[] @relation("AssignedByUser")
+  
 }
 
 model Session {
@@ -142,6 +145,7 @@ model Course {
 
   CourseCompanies CourseCompany[]
   certificates      Certificate[]
+    CourseFeedback CourseFeedback[]
 
 }
 
@@ -171,6 +175,19 @@ model UserCourse {
   certificates      Certificate[]
 
   @@unique([userId, courseId])
+}
+
+model CourseFeedback {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id])
+  message   String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([courseId])
 }
 
 

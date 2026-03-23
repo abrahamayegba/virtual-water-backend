@@ -53,6 +53,7 @@ export const adminDashboardController = {
           completedCourses,
           status: company.status, // use the DB value directly
           createdAt: company.createdAt,
+          logoUrl: company.logoUrl ?? null,
         };
       });
 

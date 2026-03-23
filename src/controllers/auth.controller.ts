@@ -156,6 +156,7 @@ export const authController = {
             select: {
               id: true,
               companyName: true,
+              logoUrl: true, // add this
             },
           },
         },
@@ -229,6 +230,7 @@ export const authController = {
 
           companyId: user.companyId,
           companyName: user.company.companyName,
+          companyLogoUrl: user.company.logoUrl ?? null, // add this
 
           roleId: user.roleId,
           roleName: user.role.roleName,
@@ -431,6 +433,7 @@ export const authController = {
           company: {
             select: {
               companyName: true,
+              logoUrl: true, // add this
             },
           },
           role: {
@@ -455,6 +458,7 @@ export const authController = {
           email: user.email,
           companyId: user.companyId,
           companyName: user.company?.companyName ?? null,
+          companyLogoUrl: user.company.logoUrl ?? null, // add this
           roleId: user.roleId,
           roleName: user.role?.roleName ?? null,
         },
