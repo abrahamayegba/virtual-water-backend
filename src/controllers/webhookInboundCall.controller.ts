@@ -14,19 +14,21 @@ export async function handleInboundCall(req: Request, res: Response) {
       req.body?.from;
 
     if (!callerNumber) {
-      console.warn("[v0] No caller number found in webhook");
+      console.warn("No caller number found in webhook");
       // Still return the assistant so the call connects
       return res.status(200).json({
         assistantId: process.env.VAPI_CUSTOMER_ASSISTANT_ID,
       });
     }
 
-    console.log("[v0] Processing webhook for caller:", callerNumber);
+    console.log(" Processing webhook for caller:", callerNumber);
+
+    const fiveHoursAgo = new Date(Date.now() - 5 * 60 * 60 * 1000);
 
     const existingOpenCall = await prisma.webhookCustomerCall.findFirst({
       where: {
         customerPhone: callerNumber,
-        managerCallStatus: { not: "reached" },
+        inboundCallTime: { gte: fiveHoursAgo },
       },
       orderBy: { inboundCallTime: "desc" },
     });
@@ -54,7 +56,7 @@ export async function handleInboundCall(req: Request, res: Response) {
       },
     });
   } catch (err) {
-    console.error("[v0] Inbound call error:", err);
+    console.error("Inbound call error:", err);
     // Still return the assistant so the call connects
     return res.status(200).json({
       assistantId: process.env.VAPI_CUSTOMER_ASSISTANT_ID,
