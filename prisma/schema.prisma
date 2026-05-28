@@ -66,6 +66,7 @@ model Company {
   logoUrl      String?
 
   courseCompanies CourseCompany[]
+  practices Practice[]
 }
 
 // Users table
@@ -77,8 +78,11 @@ model User {
   passwordSetAt  DateTime?
   companyId      String
   company        Company        @relation(fields: [companyId], references: [id])
+  practiceId String?
+  practice   Practice? @relation(fields: [practiceId], references: [id])
   roleId         String
   role           Role           @relation(fields: [roleId], references: [id])
+  position       String?  
   isArchived     Boolean  @default(false)
   UserCourses    UserCourse[]
   createdAt      DateTime       @default(now())
@@ -87,10 +91,27 @@ model User {
   passwordReset  PasswordReset?
   createdCourses Course[]
   certificates      Certificate[]
-    CourseFeedback CourseFeedback[]
+  CourseFeedback CourseFeedback[]
 
   assignedCourses CourseCompany[] @relation("AssignedByUser")
   
+}
+
+model Practice {
+  id             String   @id @default(cuid())
+  practiceNumber String?
+  practiceName   String
+
+  companyId      String
+  company        Company  @relation(fields: [companyId], references: [id])
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  users User[]
+
+  @@index([companyId])
+   @@unique([practiceNumber, companyId])
 }
 
 model Session {

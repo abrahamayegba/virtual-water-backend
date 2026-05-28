@@ -31,6 +31,7 @@ import { inboundRoutes } from "./routes/webhookInboundCall.route";
 import { managerActionRoutes } from "./routes/webhookManagerAction.route";
 import WebhookToolsRouter from "./routes/webhookTools.route";
 import { feedbackRoutes } from "./routes/courseFeedback.route";
+import { practiceRoutes } from "./routes/practice.routes";
 
 const allowedOrigins = [
   "http://localhost:3000",
@@ -77,6 +78,7 @@ app.use("/api/v1/course-objectives", courseObjectiveRoutes);
 app.use("/api/v1/user-course-lessons", userCourseLessonRoutes);
 app.use("/api/v1/companies", companyRoutes);
 app.use("/api/v1/roles", roleRoutes);
+app.use("/api/v1/practices", practiceRoutes);
 app.use("/api/v1/lesson-types", lessonTypeRoutes);
 app.use("/api/v1/admins", adminRoutes);
 app.use("/api/v1/certificates", certificateRoutes);

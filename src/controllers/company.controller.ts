@@ -128,6 +128,7 @@ export const companyController = {
           Users: {
             include: {
               role: true,
+              practice: true,
               UserCourses: {
                 include: { course: true }, // <--- include course info
               },
@@ -148,6 +149,7 @@ export const companyController = {
         name: u.name,
         email: u.email,
         role: u.role.roleName,
+        practiceName: u.practice ? u.practice.practiceName : null,
         enrolledCourses: u.UserCourses.length,
         completedCourses: u.UserCourses.filter((c) => c.completed).length,
         lastActive: u.sessions.length

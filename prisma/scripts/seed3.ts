@@ -3,7 +3,7 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
-  const userCourseId = "cmhw089te0003chg44wy18qhr";
+  const userCourseId = "cmg7toqzx0025qu57u5xh0t2p";
 
   // 1. Mark all lessons as completed
   const lessonsUpdate = await prisma.userCourseLesson.updateMany({
@@ -11,10 +11,10 @@ async function main() {
       userCourseId,
     },
     data: {
-      completed: true,
-      startedAt: new Date(),
-      completedAt: new Date(),
-      spentTime: 60,
+      completed: false,
+      startedAt: null,
+      completedAt: null,
+      spentTime: 0,
     },
   });
 
@@ -23,11 +23,12 @@ async function main() {
     where: { id: userCourseId },
     data: {
       completed: false,
+      score: 0,
       completedAt: null,
     },
   });
 
-  console.log(`Updated ${lessonsUpdate.count} lessons to completed: true`);
+  console.log(`Updated ${lessonsUpdate.count} lessons to completed: false`);
   console.log(`User course marked as completed`);
 }
 

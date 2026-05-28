@@ -6,6 +6,8 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const SALT_ROUNDS = Number(process.env.BCRYPT_SALT_ROUNDS ?? 12);
+const ACCESS_TOKEN_TTL = process.env.ACCESS_TOKEN_TTL ?? "6h";
+const REFRESH_TOKEN_TTL_DAYS = Number(process.env.REFRESH_TOKEN_TTL_DAYS ?? 14);
 
 export async function hashPassword(plain: string) {
   return bcrypt.hash(plain, SALT_ROUNDS);
@@ -35,7 +37,7 @@ export function signAccessToken(
     payload,
     process.env.JWT_ACCESS_SECRET as Secret,
     {
-      expiresIn: process.env.ACCESS_TOKEN_TTL ?? "15m",
+      expiresIn: ACCESS_TOKEN_TTL,
     } as SignOptions,
   );
 }
@@ -58,7 +60,7 @@ export function signRefreshToken(
     payload,
     process.env.JWT_REFRESH_SECRET as Secret,
     {
-      expiresIn: `${process.env.REFRESH_TOKEN_TTL_DAYS ?? 14}d`,
+      expiresIn: `${REFRESH_TOKEN_TTL_DAYS}d`,
     } as SignOptions,
   );
 }

@@ -150,14 +150,32 @@ export const reportController = {
       const payload = verifyAccessToken(token);
 
       const courses = await prisma.course.findMany({
-        where: { status: "PUBLISHED" },
+        where: {
+          status: "PUBLISHED",
+
+          ...(payload.role !== "Super Admin" && {
+            CourseCompanies: {
+              some: {
+                companyId: payload.companyId,
+              },
+            },
+          }),
+        },
+
         include: {
           UserCourses: {
             where:
               payload.role === "Super Admin"
                 ? {}
-                : { user: { companyId: payload.companyId } },
-            include: { certificates: true },
+                : {
+                    user: {
+                      companyId: payload.companyId,
+                    },
+                  },
+
+            include: {
+              certificates: true,
+            },
           },
         },
       });

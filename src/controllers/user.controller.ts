@@ -11,6 +11,7 @@ export const userControllers = {
           company: true,
           role: true,
           UserCourses: true,
+          practice: true,
         },
       });
       res.status(200).json({ success: true, users });
@@ -31,6 +32,7 @@ export const userControllers = {
           company: true,
           role: true,
           UserCourses: true,
+          practice: true,
         },
       });
       if (!user) return res.status(404).json({ message: "User not found" });
@@ -45,7 +47,7 @@ export const userControllers = {
 
   createUser: async (req: Request, res: Response) => {
     try {
-      const { name, email, companyId, roleId } = req.body;
+      const { name, email, companyId, roleId, practiceId } = req.body;
       if (!name || !email || !companyId || !roleId) {
         return res.status(400).json({ message: "All fields are required" });
       }
@@ -61,6 +63,7 @@ export const userControllers = {
           name,
           email,
           companyId,
+          practiceId,
           roleId,
           passwordHash: hashed,
         },
@@ -78,11 +81,11 @@ export const userControllers = {
   updateUser: async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const { name, email, companyId, roleId } = req.body;
+      const { name, email, companyId, roleId, practiceId } = req.body;
 
       const user = await prisma.user.update({
         where: { id },
-        data: { name, email, companyId, roleId },
+        data: { name, email, companyId, roleId, practiceId },
       });
 
       res.status(200).json({ success: true, message: "User updated", user });

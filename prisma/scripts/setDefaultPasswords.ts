@@ -4,17 +4,19 @@ import bcrypt from "bcrypt";
 const prisma = new PrismaClient();
 
 async function main() {
-  const userId = "cmg6ij3hn0007chaov4qsf30c";
-  const newPassword = "bowzer.nintendo";
+  const userId = "cmfdwv21r000rchkk5e32q56j";
+  const newPassword = "alan.hart";
 
   const hashedPassword = await bcrypt.hash(newPassword, 10);
 
   await prisma.user.update({
     where: { id: userId },
-    data: { passwordHash: hashedPassword },
+    data: {
+      passwordHash: hashedPassword,
+    },
   });
 
-  console.log(`✅ Password updated for user ${userId}`);
+  console.log(`Password updated for user ${userId}`);
 }
 
 main()

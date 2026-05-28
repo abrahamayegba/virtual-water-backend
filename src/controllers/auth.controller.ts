@@ -25,60 +25,99 @@ export const authController = {
   register: async (req: Request, res: Response) => {
     try {
       const { name, email, password, companyId, roleId } = req.body;
+
       if (!name || !email || !password || !companyId || !roleId) {
         return res
           .status(400)
           .json({ success: false, message: "Missing required fields" });
       }
+      
+      const company = await prisma.company.findUnique({
+        where: { id: companyId },
+        select: { maxUsers: true },
+      });
+
+      if (company?.maxUsers) {
+        const userCount = await prisma.user.count({
+          where: { companyId },
+        });
+
+        if (userCount >= company.maxUsers) {
+          return res.status(403).json({
+            success: false,
+            message: "User limit reached for this company",
+          });
+        }
+      }
 
       const existing = await prisma.user.findUnique({ where: { email } });
+
       if (existing) {
         return res
           .status(409)
           .json({ success: false, message: "Email already in use" });
       }
 
-      // Hash password
       const passwordHash = await hashPassword(password);
 
-      // Create user
-      const user = await prisma.user.create({
-        data: {
-          name,
-          email,
-          passwordHash,
-          passwordSetAt: new Date(),
-          companyId,
-          roleId,
-        },
+      const result = await prisma.$transaction(async (tx) => {
+        const user = await tx.user.create({
+          data: {
+            name,
+            email,
+            passwordHash,
+            passwordSetAt: new Date(),
+            companyId,
+            roleId,
+          },
+        });
+
+        const companyCourses = await tx.courseCompany.findMany({
+          where: { companyId },
+          select: { courseId: true },
+        });
+
+        if (companyCourses.length) {
+          await tx.userCourse.createMany({
+            data: companyCourses.map((cc) => ({
+              userId: user.id,
+              courseId: cc.courseId,
+              startedAt: new Date(),
+              completed: false,
+              score: 0,
+            })),
+            skipDuplicates: true,
+          });
+        }
+
+        const fullUser = await tx.user.findUnique({
+          where: { id: user.id },
+          include: {
+            role: { select: { roleName: true } },
+            company: { select: { companyName: true } },
+            practice: true,
+          },
+        });
+
+        return fullUser;
       });
 
-      // Fetch full user with role & company
-      const fullUser = await prisma.user.findUnique({
-        where: { id: user.id },
-        include: {
-          role: { select: { roleName: true } },
-          company: { select: { companyName: true } },
-        },
-      });
-
-      if (!fullUser) {
+      if (!result) {
         return res
           .status(500)
           .json({ success: false, message: "User creation failed" });
       }
 
-      // Sign tokens
       const accessToken = signAccessToken(
-        fullUser.id,
-        fullUser.email,
-        fullUser.role.roleName,
-        fullUser.companyId,
+        result.id,
+        result.email,
+        result.role.roleName,
+        result.companyId,
       );
 
       const session = await prisma.session.create({
         data: {
-          userId: fullUser.id,
+          userId: result.id,
           userAgent: req.get("user-agent") ?? null,
           ip: req.ip,
           expiresAt: new Date(
@@ -88,11 +127,11 @@ export const authController = {
       });
 
       const refreshToken = signRefreshToken(
-        fullUser.id,
-        fullUser.email,
+        result.id,
+        result.email,
         session.id,
-        fullUser.role.roleName,
-        fullUser.companyId,
+        result.role.roleName,
+        result.companyId,
       );
 
       const refreshTokenHash = await hashPassword(refreshToken);
@@ -102,7 +141,6 @@ export const authController = {
         data: { refreshTokenHash },
       });
 
-      // Set cookies
       res.cookie("refreshToken", refreshToken, refreshCookieOptions);
       res.cookie("accessToken", accessToken, {
         httpOnly: true,
@@ -115,14 +153,15 @@ export const authController = {
       return res.status(201).json({
         success: true,
         user: {
-          id: fullUser.id,
-          name: fullUser.name,
-          email: fullUser.email,
-          companyId: fullUser.companyId,
-          companyName: fullUser.company.companyName,
-          roleId: fullUser.roleId,
-          roleName: fullUser.role.roleName,
-          passwordSetAt: fullUser.passwordSetAt,
+          id: result.id,
+          name: result.name,
+          email: result.email,
+          companyId: result.companyId,
+          companyName: result.company.companyName,
+          roleId: result.roleId,
+          roleName: result.role.roleName,
+          passwordSetAt: result.passwordSetAt,
+          practice: result.practice,
         },
       });
     } catch (error: any) {
@@ -159,6 +198,7 @@ export const authController = {
               logoUrl: true, // add this
             },
           },
+          practice: true,
         },
       });
 
@@ -236,6 +276,8 @@ export const authController = {
           roleName: user.role.roleName,
 
           passwordSetAt: user.passwordSetAt,
+          practiceId: user.practiceId,
+          practice: user?.practice,
         },
         sessionId: session.id,
       });
@@ -441,6 +483,7 @@ export const authController = {
               roleName: true,
             },
           },
+          practice: true,
         },
       });
 
@@ -461,6 +504,7 @@ export const authController = {
           companyLogoUrl: user.company.logoUrl ?? null, // add this
           roleId: user.roleId,
           roleName: user.role?.roleName ?? null,
+          practice: user?.practice,
         },
       });
     } catch (error) {
