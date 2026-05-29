@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import { prisma } from "../lib/prisma";
+import { Certificate } from "@prisma/client";
 
 export const userCourseController = {
   createUserCourse: async (req: Request, res: Response) => {
@@ -306,7 +307,7 @@ export const userCourseController = {
         },
       });
 
-      let certificate = null;
+      let certificate: Certificate | null = null;
 
       // issue certificate here
       if (completed === true && typeof score === "number") {
