@@ -278,7 +278,7 @@ export const userCourseController = {
 
   updateUserCourseByUserId: async (req: Request, res: Response) => {
     try {
-      const { userId, id } = req.params; // userCourseId
+      const { userId, id } = req.params;
       const { score, completed } = req.body;
 
       const userCourse = await prisma.userCourse.findFirst({
@@ -306,20 +306,22 @@ export const userCourseController = {
         },
       });
 
-      // 🧠 ISSUE CERTIFICATE HERE
+      let certificate = null;
+
+      // issue certificate here
       if (completed === true && typeof score === "number") {
         const quiz = userCourse.course.Quizzes[0];
         const passingScore = quiz?.passingScore ?? 0;
 
         if (score >= passingScore) {
-          await prisma.certificate.upsert({
+          certificate = await prisma.certificate.upsert({
             where: {
               userId_courseId: {
                 userId,
                 courseId: userCourse.courseId,
               },
             },
-            update: {}, // do nothing if exists
+            update: {},
             create: {
               userId,
               courseId: userCourse.courseId,
@@ -329,10 +331,14 @@ export const userCourseController = {
         }
       }
 
-      res.status(200).json({ success: true, userCourse: updated });
+      return res.status(200).json({
+        success: true,
+        userCourse: updated,
+        certificate,
+      });
     } catch (error) {
       console.error("Error updating user course:", error);
-      res.status(500).json({ message: "Internal server error" });
+      return res.status(500).json({ message: "Internal server error" });
     }
   },
 

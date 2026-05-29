@@ -12,6 +12,11 @@ certificateRoutes.get(
   certificateController.getCertificatesByUser,
 );
 
+certificateRoutes.get(
+  "/:id",
+  certificateController.getCertificateById,
+);
+
 
 certificateRoutes.get(
   "/course/:courseId",

@@ -3,7 +3,7 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
-  const userCourseId = "cmg7toqzx0025qu57u5xh0t2p";
+  const userCourseId = "cmpppu60v0002qv5hzbew9okd";
 
   // 1. Mark all lessons as completed
   const lessonsUpdate = await prisma.userCourseLesson.updateMany({

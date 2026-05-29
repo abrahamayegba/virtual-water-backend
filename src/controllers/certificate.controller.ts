@@ -57,6 +57,30 @@ export const certificateController = {
     }
   },
 
+  getCertificateById: async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+
+      const certificate = await prisma.certificate.findUnique({
+        where: { id },
+        include: {
+          user: true,
+          course: true,
+          userCourse: true,
+        },
+      });
+
+      if (!certificate) {
+        return res.status(404).json({ message: "Certificate not found" });
+      }
+
+      res.json({ success: true, certificate });
+    } catch (error) {
+      console.error("Error fetching certificate:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  },
+
   // GET /api/v1/certificates/course/:courseId
   getCertificatesByCourse: async (req: Request, res: Response) => {
     try {
