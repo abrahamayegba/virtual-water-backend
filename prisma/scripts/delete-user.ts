@@ -2,56 +2,57 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-async function deleteUserDeep(userId: string) {
+async function deleteUser(userId: string) {
+  await prisma.userCourseLesson.deleteMany({
+    where: {
+      userCourse: { userId },
+    },
+  });
+
+  await prisma.certificate.deleteMany({
+    where: { userId },
+  });
+
+  await prisma.userCourse.deleteMany({
+    where: { userId },
+  });
+
+  await prisma.courseFeedback.deleteMany({
+    where: { userId },
+  });
+
+  await prisma.session.deleteMany({
+    where: { userId },
+  });
+
+  await prisma.passwordReset.deleteMany({
+    where: { userId },
+  });
+
+  await prisma.user.delete({
+    where: { id: userId },
+  });
+}
+
+async function deleteUsersDeep(userIds: string[]) {
   try {
-    // Delete UserCourseLesson progress
-    await prisma.userCourseLesson.deleteMany({
-      where: {
-        userCourse: {
-          userId: userId,
-        },
-      },
-    });
+    for (const userId of userIds) {
+      await deleteUser(userId);
+    }
 
-    // Delete UserCourse certificates
-    await prisma.certificate.deleteMany({
-      where: {
-        userId: userId,
-      },
-    });
-
-    // Delete UserCourses
-    await prisma.userCourse.deleteMany({
-      where: {
-        userId: userId,
-      },
-    });
-
-
-    // Delete password resets
-    await prisma.passwordReset.deleteMany({
-      where: { userId },
-    });
-
-    // Delete sessions
-    await prisma.session.deleteMany({
-      where: { userId },
-    });
-
-
-    // Finally delete the user
-    await prisma.user.delete({
-      where: { id: userId },
-    });
-
-    console.log(`User ${userId} and all related data deleted successfully.`);
+    console.log(`Deleted users: ${userIds.join(", ")}`);
   } catch (err) {
-    console.error("Failed to delete user:", err);
+    console.error("Bulk delete failed:", err);
   } finally {
     await prisma.$disconnect();
   }
 }
 
-// Example usage
-const userId = "cmg6ij3es0005chaoszsn5rv2";
-deleteUserDeep(userId);
+// run
+deleteUsersDeep([
+  "cmppp10fx0005chu05xebl5wt",
+  "cmpppu60p0001qv5hq025bq5h",
+  "cmppsnwni000tqv5hspix9238",
+  "cmpqr0a1b0014qv5hopbmadj9",
+  "cmpr0bn950003qv23urqdl969",
+]);

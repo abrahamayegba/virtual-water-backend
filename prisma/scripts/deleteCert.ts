@@ -3,7 +3,7 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
-  const certificateId = "cmpqzhx2y0003chboskgr8gs3";
+  const certificateId = "cmpqzm9290007chbop5anaklt";
 
   await prisma.certificate.delete({
     where: {

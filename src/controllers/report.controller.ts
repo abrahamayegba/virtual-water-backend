@@ -2,6 +2,22 @@ import type { Request, Response } from "express";
 import { prisma } from "../lib/prisma";
 import { verifyAccessToken } from "../auth/utils";
 
+// The second company this admin has access to.
+// Replace this with the real company ID.
+const ADMIN_EXTRA_COMPANY_ID = "cmpmqnn1w0000chu0i1gtt9co";
+
+/**
+ * Returns the array of company IDs a non-Super Admin can see.
+ * Admin role: their own companyId + the hardcoded extra company.
+ * All other non-super-admin roles: only their own companyId.
+ */
+function getAllowedCompanyIds(role: string, companyId: string): string[] {
+  if (role === "Admin") {
+    return [companyId, ADMIN_EXTRA_COMPANY_ID];
+  }
+  return [companyId];
+}
+
 export const reportController = {
   // =============================
   // OVERVIEW
@@ -12,9 +28,14 @@ export const reportController = {
       if (!token) return res.status(401).json({ message: "Unauthorized" });
 
       const payload = verifyAccessToken(token);
+      const isSuperAdmin = payload.role === "Super Admin";
+      const allowedIds = isSuperAdmin
+        ? null
+        : getAllowedCompanyIds(payload.role, payload.companyId);
 
-      const companyFilter =
-        payload.role === "Super Admin" ? {} : { companyId: payload.companyId };
+      const userCompanyFilter = isSuperAdmin
+        ? {}
+        : { companyId: { in: allowedIds! } };
 
       const [
         totalUsers,
@@ -24,34 +45,33 @@ export const reportController = {
         activeUsers,
         avgScore,
       ] = await Promise.all([
-        prisma.user.count({ where: companyFilter }),
+        prisma.user.count({ where: userCompanyFilter }),
         prisma.course.count({ where: { status: "PUBLISHED" } }),
         prisma.userCourse.count({
           where: {
             completed: true,
-            ...(payload.role !== "Super Admin" && {
-              user: { companyId: payload.companyId },
+            ...(!isSuperAdmin && {
+              user: { companyId: { in: allowedIds! } },
             }),
           },
         }),
         prisma.certificate.count({
-          where:
-            payload.role !== "Super Admin"
-              ? { user: { companyId: payload.companyId } }
-              : {},
+          where: isSuperAdmin
+            ? {}
+            : { user: { companyId: { in: allowedIds! } } },
         }),
         prisma.userCourse.groupBy({
           by: ["userId"],
-          ...(payload.role !== "Super Admin" && {
-            where: { user: { companyId: payload.companyId } },
+          ...(!isSuperAdmin && {
+            where: { user: { companyId: { in: allowedIds! } } },
           }),
         }),
         prisma.userCourse.aggregate({
           _avg: { score: true },
           where: {
-            completed: true, // only completed courses
-            ...(payload.role !== "Super Admin" && {
-              user: { companyId: payload.companyId },
+            completed: true,
+            ...(!isSuperAdmin && {
+              user: { companyId: { in: allowedIds! } },
             }),
           },
         }),
@@ -80,23 +100,23 @@ export const reportController = {
       if (!token) return res.status(401).json({ message: "Unauthorized" });
 
       const payload = verifyAccessToken(token);
-      const companyFilter =
-        payload.role === "Super Admin" ? {} : { id: payload.companyId };
+      const isSuperAdmin = payload.role === "Super Admin";
+      const allowedIds = isSuperAdmin
+        ? null
+        : getAllowedCompanyIds(payload.role, payload.companyId);
+
+      const companyFilter = isSuperAdmin ? {} : { id: { in: allowedIds! } };
 
       const companies = await prisma.company.findMany({
         where: companyFilter,
         include: {
           Users: {
-            where:
-              payload.role === "Super Admin"
-                ? {}
-                : { companyId: payload.companyId },
+            where: isSuperAdmin ? {} : { companyId: { in: allowedIds! } },
             include: {
               UserCourses: {
-                where:
-                  payload.role === "Super Admin"
-                    ? {}
-                    : { user: { companyId: payload.companyId } },
+                where: isSuperAdmin
+                  ? {}
+                  : { user: { companyId: { in: allowedIds! } } },
               },
               certificates: true,
             },
@@ -106,18 +126,14 @@ export const reportController = {
 
       const data = companies.map((c) => {
         const users = c.Users.length;
-
         const completedCourses = c.Users.flatMap((u) =>
           u.UserCourses.filter((uc) => uc.completed),
         );
-
         const completions = completedCourses.length;
-
         const scores = completedCourses.map((uc) => uc.score);
         const avgScore = scores.length
           ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
           : 0;
-
         const certificates = c.Users.reduce(
           (sum, u) => sum + u.certificates.length,
           0,
@@ -148,45 +164,35 @@ export const reportController = {
       if (!token) return res.status(401).json({ message: "Unauthorized" });
 
       const payload = verifyAccessToken(token);
+      const isSuperAdmin = payload.role === "Super Admin";
+      const allowedIds = isSuperAdmin
+        ? null
+        : getAllowedCompanyIds(payload.role, payload.companyId);
 
       const courses = await prisma.course.findMany({
         where: {
           status: "PUBLISHED",
-
-          ...(payload.role !== "Super Admin" && {
+          ...(!isSuperAdmin && {
             CourseCompanies: {
-              some: {
-                companyId: payload.companyId,
-              },
+              some: { companyId: { in: allowedIds! } },
             },
           }),
         },
-
         include: {
           UserCourses: {
-            where:
-              payload.role === "Super Admin"
-                ? {}
-                : {
-                    user: {
-                      companyId: payload.companyId,
-                    },
-                  },
-
-            include: {
-              certificates: true,
-            },
+            where: isSuperAdmin
+              ? {}
+              : { user: { companyId: { in: allowedIds! } } },
+            include: { certificates: true },
           },
         },
       });
 
       const data = courses.map((c) => {
         const completedCourses = c.UserCourses.filter((uc) => uc.completed);
-
         const passedCourses = completedCourses.filter(
           (uc) => uc.certificates.length > 0,
         );
-
         const enrolled = c.UserCourses.length;
         const completed = completedCourses.length;
         const avgScore =
@@ -201,13 +207,7 @@ export const reportController = {
             ? Math.round((passedCourses.length / completed) * 100)
             : 0;
 
-        return {
-          title: c.title,
-          enrolled,
-          completed,
-          avgScore,
-          passRate,
-        };
+        return { title: c.title, enrolled, completed, avgScore, passRate };
       });
 
       res.json(data);
@@ -226,12 +226,16 @@ export const reportController = {
       if (!token) return res.status(401).json({ message: "Unauthorized" });
 
       const payload = verifyAccessToken(token);
+      const isSuperAdmin = payload.role === "Super Admin";
+      const allowedIds = isSuperAdmin
+        ? null
+        : getAllowedCompanyIds(payload.role, payload.companyId);
 
       const recent = await prisma.userCourse.findMany({
         where: {
           completed: true,
-          ...(payload.role !== "Super Admin" && {
-            user: { companyId: payload.companyId },
+          ...(!isSuperAdmin && {
+            user: { companyId: { in: allowedIds! } },
           }),
         },
         orderBy: { completedAt: "desc" },
@@ -258,15 +262,21 @@ export const reportController = {
     }
   },
 
+  // =============================
+  // USER TRAINING RECORDS
+  // =============================
   getUserTrainingRecords: async (req: Request, res: Response) => {
     try {
       const token = req.cookies?.accessToken;
       if (!token) return res.status(401).json({ message: "Unauthorized" });
 
       const payload = verifyAccessToken(token);
+      const isSuperAdmin = payload.role === "Super Admin";
+      const allowedIds = isSuperAdmin
+        ? null
+        : getAllowedCompanyIds(payload.role, payload.companyId);
 
-      const userFilter =
-        payload.role === "Super Admin" ? {} : { companyId: payload.companyId };
+      const userFilter = isSuperAdmin ? {} : { companyId: { in: allowedIds! } };
 
       const users = await prisma.user.findMany({
         where: userFilter,
@@ -290,8 +300,6 @@ export const reportController = {
         company: u.company.companyName,
         courses: u.UserCourses.map((uc) => {
           const certificate = uc.certificates[0];
-
-          // Check if any lesson has been completed
           const hasCompletedLesson = uc.UserCourseLessons?.some(
             (l) => l.completed,
           );

@@ -8,11 +8,11 @@ async function main() {
       id: "cmpmqnn1w0000chu0i1gtt9co",
     },
     data: {
-      maxUsers: 182,
+      maxUsers: 225,
     },
   });
 
-  console.log("Company maxUsers set to 182");
+  console.log("Company maxUsers set to 225");
 }
 
 main()
